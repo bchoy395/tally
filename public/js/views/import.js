@@ -49,6 +49,11 @@ function chooser(el, query) {
         h('li', null, 'Quicken for Mac: use ', h('b', null, 'File › Export'), ' and pick QIF if your version offers it. Otherwise export each register as CSV and import one account at a time.'),
         h('li', null, 'Drop the file here. You\'ll see every account and can match it to an existing one or create it.')),
       h('p', { class: 'muted small' }, 'Transfers between accounts are linked once (not doubled), splits keep their categories, and opening balances come across. A backup is taken before a Quicken import.'),
+      h('h2', { style: { marginTop: '16px' } }, 'From a spreadsheet'),
+      h('p', { class: 'ink-2', style: { marginTop: '4px' } }, 'Want to type transactions into Excel instead? Download the template, fill in one transaction per row, save it, then choose it above.'),
+      h('a', { class: 'btn', href: '/tally-import-template.csv', download: 'tally-import-template.csv' }, 'Download spreadsheet template'),
+      h('p', { class: 'muted small' }, 'Put amounts under Money Out or Money In (no minus signs). Category is optional; write subcategories as Food:Groceries. Delete the three example rows first. ',
+        h('a', { href: '/help#spreadsheet', target: '_blank', rel: 'noopener' }, 'Step-by-step help')),
       h('h2', { style: { marginTop: '16px' } }, 'From your bank'),
       h('p', { class: 'ink-2', style: { marginTop: '4px' } }, 'Download activity as OFX, QFX ("Quicken"), or CSV. Re-importing an overlapping date range is safe: likely duplicates are found and left unticked.')))));
 }

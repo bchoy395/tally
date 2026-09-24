@@ -40,6 +40,9 @@
   dt { font-weight: 700; margin-top: 14px; }
   dt:first-child { margin-top: 0; }
   dd { margin: 2px 0 0; }
+  table.cols { border-collapse: collapse; width: 100%; margin: 10px 0 4px; font-size: 17px; }
+  table.cols th, table.cols td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  table.cols th { white-space: nowrap; }
   .top { font-size: 16px; }
   @media print { body { background: #fff; color: #000; font-size: 14px; } section, nav { break-inside: avoid; border-color: #bbb; } .top { display: none; } }
 </style>
@@ -54,6 +57,7 @@
     <a href="#start">Starting Tally</a>
     <a href="#close">Closing Tally</a>
     <a href="#use">Using Tally</a>
+    <a href="#spreadsheet">Adding many transactions from a spreadsheet</a>
     <a href="#data">Where your information is kept</a>
     <a href="#update">Getting updates</a>
     <a href="#help">If something goes wrong</a>
@@ -107,9 +111,55 @@
       <dd>Shows how much you've spent in each category this month compared with what you planned.</dd>
       <dt>Reports</dt>
       <dd>Shows where your money goes, with charts.</dd>
+      <dt>Lots of transactions to add?</dt>
+      <dd>See <a href="#spreadsheet">Adding many transactions from a spreadsheet</a> below.</dd>
       <dt>Help</dt>
       <dd>The <b>Help</b> link at the bottom left of Tally opens this page.</dd>
     </dl>
+  </section>
+
+  <section id="spreadsheet">
+    <h2>Adding many transactions from a spreadsheet</h2>
+    <p>If you have a lot of transactions to enter, it can be easier to type them into Excel first and then bring them all into Tally at once.</p>
+
+    <p><b>Get the template</b></p>
+    <ol class="steps">
+      <li>In Tally, click <b>Import</b> (bottom left).</li>
+      <li>Click <b>Download spreadsheet template</b>. A file called <b>tally-import-template.csv</b> is saved in your <b>Downloads</b> folder.</li>
+      <li>Open your <b>Downloads</b> folder and double-click that file. It opens in Excel.</li>
+    </ol>
+
+    <p><b>Fill it in</b></p>
+    <ol class="steps">
+      <li>Rows 2, 3 and 4 are <b>examples</b>. Delete them: click the <b>2</b> at the far left, hold <b>Shift</b> and click the <b>4</b>, then right-click and choose <b>Delete</b>. Leave row 1 (the column names) exactly as it is.</li>
+      <li>Type one transaction per row, starting on row 2. Each file should be for <b>one account</b>, like just your checking account.
+        <table class="cols">
+          <tr><th>Date</th><td>Month/Day/Year, like <code>09/24/2026</code>. <b>Required.</b></td></tr>
+          <tr><th>Payee</th><td>Who you paid, or who paid you.</td></tr>
+          <tr><th>Money Out</th><td>Money you spent or paid, like <code>54.20</code>. No minus sign.</td></tr>
+          <tr><th>Money In</th><td>Money you received, like <code>1850.00</code>.</td></tr>
+          <tr><th>Category</th><td>Optional. Use a name from Tally's <b>Categories</b> page. For a subcategory, write the main one, a colon, then the sub one, like <code>Food:Groceries</code>.</td></tr>
+          <tr><th>Memo</th><td>Optional note.</td></tr>
+          <tr><th>Check Number</th><td>Optional.</td></tr>
+        </table>
+        Put each amount in <b>either</b> Money Out <b>or</b> Money In, not both.</li>
+      <li>Save the file: press <b>Ctrl</b> and <b>S</b> together. If Excel asks about keeping the format, choose <b>Keep Current Format</b> (or <b>Yes</b>). Then close Excel.</li>
+    </ol>
+
+    <p><b>Bring it into Tally</b></p>
+    <ol class="steps">
+      <li>In Tally, click <b>Import</b>.</li>
+      <li>Under <b>Import into</b>, choose the account these transactions belong to.</li>
+      <li>Click <b>Choose a file or drop it here</b>, open your <b>Downloads</b> folder, and pick your file.</li>
+      <li>Tally shows you a list to check before anything is added:
+        <ul>
+          <li>Rows with a <b>checkmark</b> will be added. Click a checkmark to leave a row out.</li>
+          <li>Rows marked <b>Possible duplicate</b> look like transactions you already have, so they start unchecked.</li>
+          <li>If a category says <b>New category — will be created</b>, it didn't match an existing one. Check the spelling, or leave it and Tally creates it.</li>
+        </ul></li>
+      <li>Click <b>Import</b> at the bottom right. Done.</li>
+    </ol>
+    <p class="note">Next time, you can reuse the same file: delete your old rows, type the new ones, and import it again. Anything that looks like a transaction you already have starts unchecked.</p>
   </section>
 
   <section id="data">

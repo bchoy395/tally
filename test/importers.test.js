@@ -68,6 +68,20 @@ test('CSV without a header row is mapped from content', () => {
   assert.deepEqual(r.rows[1], { date: '2024-01-03', amount: -4010, payee: 'Grocery Store', memo: '', num: '', category: '' });
 });
 
+test('the downloadable spreadsheet template imports as money out / money in', () => {
+  const fs = require('node:fs');
+  const r = IMP.parseCSV(fs.readFileSync(require.resolve('../public/tally-import-template.csv'), 'utf8'));
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.rows.map((x) => [x.date, x.payee, x.amount, x.category, x.num]), [
+    ['2026-09-01', 'Corner Grocery', -5420, 'Food:Groceries', ''],
+    ['2026-09-03', 'City Water', -3810, 'Bills & Utilities:Water & Sewer', '1042'],
+    ['2026-09-15', 'Social Security', 185000, 'Other Income', ''],
+  ]);
+  // The same file after Excel re-saves it: CRLF, reformatted dates, $ signs, thousands separators
+  const excel = 'Date,Payee,Money Out,Money In,Category,Memo,Check Number\r\n9/1/2026,Corner Grocery,$54.20,,,,\r\n1-Sep-26,Pharmacy,"$1,204.00",,,,\r\n';
+  assert.deepEqual(IMP.parseCSV(excel).rows.map((x) => [x.date, x.amount]), [['2026-09-01', -5420], ['2026-09-01', -120400]]);
+});
+
 test('OFX (SGML, unclosed tags) parses transactions and statement balance', () => {
   const ofx = `OFXHEADER:100
 DATA:OFXSGML

@@ -28,6 +28,7 @@ Your data lives in `~/Library/Application Support/Tally/tally.db` (macOS). Overr
 | **Reports** | Spending and income by category or payee, income vs. spending by month, net worth over time. Click through to the transactions behind any number. |
 | **Bills & recurring** | Weekly to yearly schedules, upcoming list with Enter/Skip, optional auto-enter (paychecks, autopay). |
 | **Import** | Quicken **QIF** (multi-account migration with categories, splits, linked transfers, opening balances), **OFX/QFX**, and **CSV** (auto-detected columns, debit/credit or signed amounts, day-first dates). Duplicate detection by FITID and date/amount. |
+| **Spreadsheet template** | `public/tally-import-template.csv` (download it from the Import page): Date, Payee, Money Out, Money In, Category, Memo, Check Number. Fill it in with Excel and import it into one account. |
 | **Rules** | “Payee contains X” → rename and/or categorize. Imports also reuse the category you last used for the same payee. |
 | **Safety** | Daily automatic backups (last 30 kept) plus a snapshot before any import, restore, account delete or erase. JSON backup/restore and full CSV export. |
 
