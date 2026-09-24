@@ -39,6 +39,8 @@ test('API: origin checks, CSRF header, CRUD and errors', async () => {
     assert.equal(index.status, 200);
     assert.match(index.headers['content-type'], /text\/html/);
     assert.equal((await request(port, { path: '/../server.js' })).body.includes('createServer'), false);
+    const help = await request(port, { path: '/help' });
+    assert.match(help.body, /How to use Tally/);
     const csv = await request(port, { path: '/api/export.csv' });
     assert.match(csv.headers['content-disposition'], /attachment/);
   } finally {

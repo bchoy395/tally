@@ -60,7 +60,8 @@ function renderSidebar(route) {
   } else {
     acctSection.append(h('div', { class: 'muted small', style: { padding: '6px 10px' } }, 'No accounts yet.'));
   }
-  sidebar.append(acctSection, h('div', { class: 'side-foot nav' }, NAV_2.map(link)));
+  sidebar.append(acctSection, h('div', { class: 'side-foot nav' }, NAV_2.map(link),
+    h('a', { href: '/help', target: '_blank', rel: 'noopener' }, icon('help'), 'Help')));
 }
 
 let rendering = 0;

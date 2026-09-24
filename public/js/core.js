@@ -335,6 +335,7 @@ export const ICONS = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/>',
   logo: '<path d="M4 19V9M9.5 19V5M15 19v-7M20.5 19V3"/>',
 };
 export function icon(name, size = 16) {

@@ -1,6 +1,6 @@
 # Tally
 
-> **Using Tally on the Windows computer?** Read **[HOW-TO-USE.md](HOW-TO-USE.md)**: a step-by-step guide to starting Tally, using it, and getting updates.
+> **Using Tally on the Windows computer?** Double-click **HOW-TO-USE.html** (or click **Help** inside Tally) for a step-by-step guide to starting Tally, using it, and getting updates.
 
 A private, local personal-finance manager — a Quicken replacement that keeps everything in one SQLite file on your own computer. No account, no cloud, no subscription, no dependencies beyond Node.js.
 

@@ -130,6 +130,11 @@ function createServer(L, ctx = {}) {
       res.writeHead(403); res.end('Forbidden'); return;
     }
     const url = new URL(req.url, `http://${host}`);
+    if (url.pathname === '/help') {
+      res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-cache' });
+      fs.createReadStream(path.join(__dirname, 'HOW-TO-USE.html')).pipe(res);
+      return;
+    }
     if (!url.pathname.startsWith('/api/')) return serveStatic(url.pathname, res);
 
     const send = (status, obj) => {

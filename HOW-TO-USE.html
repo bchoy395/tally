@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to use Tally</title>
+<meta name="color-scheme" content="light dark">
+<style>
+  :root {
+    --page: #f9f9f7; --surface: #ffffff; --ink: #161616; --ink-2: #4a4945; --line: #e1e0d9;
+    --accent: #1c5cab; --accent-wash: #e8f0fb; --note: #fff6dc; --note-line: #f0d98c; --code: #f1f0ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --page: #111110; --surface: #1c1c1b; --ink: #f4f4f2; --ink-2: #c3c2b7; --line: #34342f;
+      --accent: #86b6ef; --accent-wash: #1d2a3b; --note: #2e2816; --note-line: #6b5a23; --code: #2a2a28; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 19px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 36px; margin: 0 0 8px; line-height: 1.2; }
+  .lead { color: var(--ink-2); margin: 0 0 24px; }
+  nav { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 20px; margin-bottom: 28px; }
+  nav b { display: block; margin-bottom: 6px; }
+  nav a { display: inline-block; margin: 2px 14px 2px 0; color: var(--accent); }
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; margin-bottom: 22px; }
+  h2 { font-size: 26px; margin: 0 0 14px; line-height: 1.25; }
+  ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 0; }
+  ol.steps > li { counter-increment: s; position: relative; padding: 0 0 16px 52px; min-height: 40px; }
+  ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: -2px; width: 36px; height: 36px; border-radius: 50%;
+    background: var(--accent); color: var(--surface); font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  ul { padding-left: 24px; margin: 8px 0; }
+  li + li { margin-top: 6px; }
+  p { margin: 10px 0; }
+  .type { display: inline-block; font: 600 22px/1.4 ui-monospace, Consolas, monospace; background: var(--code); border: 2px solid var(--line);
+    border-radius: 8px; padding: 6px 16px; margin: 6px 0; }
+  code { font: 17px ui-monospace, Consolas, monospace; background: var(--code); padding: 1px 6px; border-radius: 5px; overflow-wrap: anywhere; }
+  .note { background: var(--note); border: 1px solid var(--note-line); border-radius: 10px; padding: 12px 16px; margin: 12px 0 0; }
+  .good { background: var(--accent-wash); border-radius: 10px; padding: 12px 16px; margin: 12px 0 0; }
+  dl { margin: 0; }
+  dt { font-weight: 700; margin-top: 14px; }
+  dt:first-child { margin-top: 0; }
+  dd { margin: 2px 0 0; }
+  .top { font-size: 16px; }
+  @media print { body { background: #fff; color: #000; font-size: 14px; } section, nav { break-inside: avoid; border-color: #bbb; } .top { display: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>How to use Tally</h1>
+  <p class="lead">Tally keeps track of your bank accounts, credit cards, bills and budget. It runs on this computer, and your information stays on this computer. Nothing goes on the internet.</p>
+
+  <nav aria-label="Contents">
+    <b>On this page</b>
+    <a href="#start">Starting Tally</a>
+    <a href="#close">Closing Tally</a>
+    <a href="#use">Using Tally</a>
+    <a href="#data">Where your information is kept</a>
+    <a href="#update">Getting updates</a>
+    <a href="#help">If something goes wrong</a>
+  </nav>
+
+  <section id="start">
+    <h2>Starting Tally</h2>
+    <ol class="steps">
+      <li>On your <b>Desktop</b>, double-click the <b>tally</b> folder to open it.</li>
+      <li>Double-click the file named <b>Tally</b> (its type says "Windows Batch File").<br>
+        There is also a file called <b>Tally.command</b>. Ignore it; that one is for Mac.</li>
+      <li>A <b>black window</b> opens with some text in it. <b>Leave it open.</b> Tally only works while it is open. You can make it smaller by clicking the <b>_</b> button in its top-right corner.</li>
+      <li>Your web browser opens Tally by itself after a few seconds.<br>
+        If it doesn't, open your web browser, type <b>localhost:4280</b> at the top where you'd normally type a website, and press <b>Enter</b>.</li>
+    </ol>
+    <p class="note">The first time only, Windows might show a blue box that says "Windows protected your PC". Click <b>More info</b>, then <b>Run anyway</b>.</p>
+  </section>
+
+  <section id="close">
+    <h2>Closing Tally</h2>
+    <ol class="steps">
+      <li>Close the Tally tab in your browser.</li>
+      <li>Close the <b>black window</b> by clicking the <b>X</b> in its top-right corner.</li>
+    </ol>
+    <p class="good">You don't need to save anything first. Tally saves each change as soon as you make it.</p>
+  </section>
+
+  <section id="use">
+    <h2>Using Tally</h2>
+    <dl>
+      <dt>Your accounts</dt>
+      <dd>They're listed down the left side with their balances. Click one to see its transactions.</dd>
+      <dt>Home</dt>
+      <dd>At the top left. It shows a summary: what you have, what you've spent this month, and bills coming up.</dd>
+      <dt>To add a transaction</dt>
+      <dd>Click the blue <b>+ New</b> button (or press the <b>N</b> key). Fill in:
+        <ul>
+          <li>the <b>date</b></li>
+          <li>the <b>payee</b> (who you paid, or who paid you)</li>
+          <li>the amount under <b>Payment</b> (money going out) or <b>Deposit</b> (money coming in)</li>
+          <li>the <b>category</b>, like Groceries</li>
+        </ul>
+        Then click <b>Save</b>.</dd>
+      <dt>To change a transaction</dt>
+      <dd>Click the <b>Edit</b> button at the right end of its row. Clicking the row itself only highlights it.</dd>
+      <dt>To delete a transaction</dt>
+      <dd>Click <b>Edit</b>, then <b>Delete</b> in the bottom-left corner.</dd>
+      <dt>Bills &amp; recurring</dt>
+      <dd>Lists bills that are coming up. When you've paid one, click <b>Enter</b> next to it and it's recorded for you.</dd>
+      <dt>Budget</dt>
+      <dd>Shows how much you've spent in each category this month compared with what you planned.</dd>
+      <dt>Reports</dt>
+      <dd>Shows where your money goes, with charts.</dd>
+      <dt>Help</dt>
+      <dd>The <b>Help</b> link at the bottom left of Tally opens this page.</dd>
+    </dl>
+  </section>
+
+  <section id="data">
+    <h2>Where your information is kept</h2>
+    <p>There are two separate things on this computer:</p>
+    <ol class="steps">
+      <li><b>The program</b>: the <b>tally</b> folder on your Desktop. Brianna makes improvements on her computer and sends them to you through a website called GitHub.</li>
+      <li><b>Your information</b>: your accounts, transactions and budget. It's kept in a separate, hidden folder:<br>
+        <code>C:\Users\(your name)\AppData\Roaming\Tally</code></li>
+    </ol>
+    <p class="good"><b>Getting updates only changes the program. It never touches your information.</b> Even if the tally folder on the Desktop were deleted, your information would still be there.</p>
+    <p>Tally also makes a backup copy of your information every day, all by itself.</p>
+    <p><b>For extra safety, about once a month:</b></p>
+    <ol class="steps">
+      <li>In Tally, click <b>Settings</b> (bottom left).</li>
+      <li>Click <b>Download backup</b>.</li>
+      <li>Copy the file it saves (in your <b>Downloads</b> folder) to a USB stick.</li>
+    </ol>
+  </section>
+
+  <section id="update">
+    <h2>Getting updates from Brianna</h2>
+    <p>Only do this when Brianna tells you there's an update.</p>
+    <ol class="steps">
+      <li><b>Close Tally first.</b> Close the browser tab and the black window.</li>
+      <li>Open the <b>tally</b> folder on your Desktop.</li>
+      <li>At the top of that window is a bar that says <b>Desktop &gt; tally</b>. Click once on the empty space at the right end of that bar. The text changes to something like <code>C:\Users\...\Desktop\tally</code> and is highlighted.</li>
+      <li>Type the word <span class="type">powershell</span> and press <b>Enter</b>.</li>
+      <li>A new window opens (usually blue or black). Its last line ends in <code>\Desktop\tally&gt;</code> and has a blinking cursor after it.</li>
+      <li>Type exactly this, then press <b>Enter</b>:<br><span class="type">git pull</span></li>
+      <li>Wait a few seconds until the blinking cursor comes back. You'll see one of these, and <b>both mean it worked</b>:
+        <ul>
+          <li><code>Already up to date.</code> There was nothing new.</li>
+          <li>A list of file names ending with something like <code>3 files changed</code>. The update is installed.</li>
+        </ul></li>
+      <li>Close that window with the <b>X</b> in its top-right corner.</li>
+      <li>Start Tally again, the same way as always.</li>
+    </ol>
+  </section>
+
+  <section id="help">
+    <h2>If something goes wrong</h2>
+    <p class="good">Don't worry. <b>None of these can harm your information.</b> They only affect the program.</p>
+    <dl>
+      <dt>The browser says "This site can't be reached."</dt>
+      <dd>The black window was closed. Start Tally again.</dd>
+      <dt>The black window says "Tally is already running."</dt>
+      <dd>Tally was already open. Your browser opens it anyway.</dd>
+      <dt>The black window says "Tally needs Node.js."</dt>
+      <dd>Call Brianna.</dd>
+      <dt>After typing git pull, it says "git is not recognized".</dt>
+      <dd>Call Brianna.</dd>
+      <dt>A window pops up asking you to sign in to GitHub.</dt>
+      <dd>Close it and call Brianna. Please don't try other passwords.</dd>
+      <dt>Red text, or any message you're not sure about.</dt>
+      <dd>Take a photo of the screen with your phone and send it to Brianna.</dd>
+    </dl>
+  </section>
+  <p class="top"><a href="#">Back to top</a></p>
+</main>
+</body>
+</html>
