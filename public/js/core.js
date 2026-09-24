@@ -370,3 +370,8 @@ export function applyTheme() {
 }
 
 export const plural = (n, one, many = `${one}s`) => `${Number(n).toLocaleString()} ${n === 1 ? one : many}`;
+
+// The per-row Edit button (rows themselves select, they don't open).
+export function editButton(what, onclick) {
+  return h('td', { class: 'act' }, h('button', { type: 'button', class: 'btn sm', 'aria-label': `Edit ${what}`, onclick: (e) => { e.stopPropagation(); onclick(); } }, 'Edit'));
+}

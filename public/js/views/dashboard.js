@@ -1,5 +1,5 @@
 import {
-  api, h, money, fmtDate, fmtMonth, fmtMonthShort, pageHead, icon, categoryLabel, changed, toast, attempt, qs, monthEnd, navigate, todayISO,
+  api, h, money, fmtDate, fmtMonth, fmtMonthShort, pageHead, icon, categoryLabel, changed, attempt, qs, monthEnd, todayISO, editButton,
 } from '../core.js';
 import { areaChart, barList } from '../charts.js';
 import { openTxnEditor } from '../editor.js';
@@ -90,7 +90,7 @@ export async function render(el) {
       tbody.append(h('tr', null,
         h('td', { class: 'date' }, fmtDate(b.date), b.overdue ? [' ', h('span', { class: 'badge bad' }, 'Overdue')] : null),
         h('td', null, b.payee, h('div', { class: 'memo' }, b.account_name)),
-        h('td', { class: `amt ${b.amount > 0 ? 'pos' : ''}` }, money(b.amount)),
+        h('td', { class: `amt ${b.amount > 0 ? 'pos' : 'neg'}` }, money(b.amount)),
         h('td', { class: 'r' }, b.is_next ? h('button', { class: 'btn sm', onclick: async () => {
           const r = await attempt(() => api.post(`/scheduled/${b.id}/enter`), `Entered ${b.payee}.`);
           if (r) await changed();
@@ -105,12 +105,13 @@ export async function render(el) {
   const tb = h('tbody');
   for (const t of d.recent) {
     const cl = categoryLabel(t);
-    tb.append(h('tr', { class: `click ${t.date > todayISO() ? 'future' : ''}`, onclick: () => openTxnEditor({ id: t.id }) },
+    tb.append(h('tr', { class: t.date > todayISO() ? 'future' : '' },
       h('td', { class: 'date' }, fmtDate(t.date)),
       h('td', { class: 'payee' }, t.payee || h('span', { class: 'muted' }, '(no payee)')),
       h('td', { class: `cat ${cl ? '' : 'uncat'} hide-sm` }, cl || 'Uncategorized'),
       h('td', { class: 'hide-sm ink-2' }, t.account_name),
-      h('td', { class: `amt ${t.amount > 0 ? 'pos' : ''}` }, money(t.amount))));
+      h('td', { class: `amt ${t.amount > 0 ? 'pos' : ''}` }, money(t.amount)),
+      editButton(t.payee || 'transaction', () => openTxnEditor({ id: t.id }))));
   }
   recent.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data' }, tb)));
   el.append(recent);

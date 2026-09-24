@@ -1,6 +1,6 @@
 import {
   api, state, h, money, fmtDate, pageHead, icon, changed, attempt, toast, options, accountOptions, field, openDialog, confirmDialog,
-  categoryInput, resolveCategoryText, ensureCategory, parseAmount, centsToInput, todayISO, catPath,
+  categoryInput, resolveCategoryText, ensureCategory, parseAmount, centsToInput, todayISO, editButton,
 } from '../core.js';
 
 const FREQ = [['monthly', 'Monthly'], ['weekly', 'Weekly'], ['biweekly', 'Every 2 weeks'], ['quarterly', 'Quarterly'], ['yearly', 'Yearly'], ['once', 'Once']];
@@ -66,7 +66,7 @@ export async function render(el) {
         h('td', { class: 'date' }, fmtDate(u.date), u.overdue ? [' ', h('span', { class: 'badge bad' }, 'Overdue')] : null),
         h('td', null, u.payee, h('div', { class: 'memo' }, `${u.account_name} · ${catText(u)}`)),
         h('td', { class: 'hide-sm' }, u.auto_enter ? h('span', { class: 'badge accent' }, 'Auto') : ''),
-        h('td', { class: `amt ${u.amount > 0 ? 'pos' : ''}` }, money(u.amount)),
+        h('td', { class: `amt ${u.amount > 0 ? 'pos' : 'neg'}` }, money(u.amount)),
         h('td', { class: 'amt hide-sm muted' }, money(running)),
         h('td', { class: 'r' }, u.is_next ? h('div', { class: 'row', style: { justifyContent: 'flex-end' } },
           h('button', { class: 'btn sm', onclick: async () => { if (await attempt(() => api.post(`/scheduled/${u.id}/enter`), `Entered ${u.payee}.`)) await changed(); } }, 'Enter'),
@@ -82,14 +82,15 @@ export async function render(el) {
   if (!list.length) all.append(h('div', { class: 'empty' }, 'Schedule rent, subscriptions and paychecks so they show up here before they hit your account.'));
   else {
     all.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-      h('thead', null, h('tr', null, h('th', null, 'Payee'), h('th', null, 'Repeats'), h('th', null, 'Next'), h('th', { class: 'hide-sm' }, 'Account'), h('th', { class: 'hide-sm' }, 'Category'), h('th', { class: 'r' }, 'Amount'))),
-      h('tbody', null, list.map((s) => h('tr', { class: 'click', onclick: () => openScheduleDialog(s) },
+      h('thead', null, h('tr', null, h('th', null, 'Payee'), h('th', null, 'Repeats'), h('th', null, 'Next'), h('th', { class: 'hide-sm' }, 'Account'), h('th', { class: 'hide-sm' }, 'Category'), h('th', { class: 'r' }, 'Amount'), h('th', null, h('span', { class: 'sr-only' }, 'Edit')))),
+      h('tbody', null, list.map((s) => h('tr', null,
         h('td', null, s.payee, s.auto_enter ? [' ', h('span', { class: 'badge accent' }, 'Auto')] : null),
         h('td', { class: 'ink-2' }, freqLabel[s.frequency], s.end_date ? h('div', { class: 'memo' }, `until ${fmtDate(s.end_date)}`) : null),
         h('td', { class: 'date' }, fmtDate(s.next_date)),
         h('td', { class: 'hide-sm ink-2' }, s.account_name),
         h('td', { class: 'cat hide-sm' }, catText(s)),
-        h('td', { class: `amt ${s.amount > 0 ? 'pos' : ''}` }, money(s.amount))))))));
+        h('td', { class: `amt ${s.amount > 0 ? 'pos' : 'neg'}` }, money(s.amount)),
+        editButton(s.payee, () => openScheduleDialog(s))))))));
   }
   el.append(all);
 }

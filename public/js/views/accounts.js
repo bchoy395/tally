@@ -42,7 +42,7 @@ export function openAccountDialog(acct = null, { type = 'checking' } = {}) {
   }
 
   const dlg = openDialog({
-    title: acct ? 'Account settings' : 'Add an account',
+    title: acct ? `Edit ${acct.name}` : 'Add an account',
     body, left,
     actions: [{ label: 'Cancel' }, { label: acct ? 'Save' : 'Add account', primary: true, submit: true, onClick: async () => {
       let ob = opening.value.trim() ? parseAmount(opening.value) : 0;

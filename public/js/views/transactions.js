@@ -1,8 +1,9 @@
 import {
-  api, state, h, money, fmtDate, pageHead, icon, categoryLabel, changed, attempt, options, accountOptions, categoryOptions,
-  confirmDialog, qs, navigate, RANGES, rangeDates, todayISO, catPath, toast,
+  api, state, h, money, fmtDate, pageHead, icon, categoryLabel, options, accountOptions, categoryOptions,
+  qs, navigate, RANGES, rangeDates, todayISO, catPath, editButton,
 } from '../core.js';
 import { openTxnEditor } from '../editor.js';
+import { bulkBar, selectable, selectAllBox } from './bulk.js';
 
 const selection = new Set();
 let lastKey = '';
@@ -40,60 +41,29 @@ export async function render(el, _parts, query) {
       `${data.total.toLocaleString()} transaction${data.total === 1 ? '' : 's'} · net ${money(data.sum)}`));
 
   const rows = data.rows;
-  const allBox = h('input', { type: 'checkbox', 'aria-label': 'Select all shown', checked: rows.length > 0 && rows.every((t) => selection.has(t.id)) });
-  const bulk = h('div', { class: 'bulkbar hidden' });
-  const refreshBulk = () => {
-    bulk.classList.toggle('hidden', selection.size === 0);
-    bulk.firstChild && (bulk.firstChild.textContent = `${selection.size} selected`);
-  };
-  allBox.addEventListener('change', () => {
-    for (const t of rows) if (allBox.checked) selection.add(t.id); else selection.delete(t.id);
-    el.querySelectorAll('tbody input[type=checkbox]').forEach((cb) => { cb.checked = allBox.checked; cb.closest('tr').classList.toggle('sel', allBox.checked); });
-    refreshBulk();
-  });
-
+  const bar = bulkBar(selection);
+  const allBox = selectAllBox(rows, selection, bar, el);
   const tbody = h('tbody');
   const today = todayISO();
   for (const t of rows) {
-    const cb = h('input', { type: 'checkbox', checked: selection.has(t.id), 'aria-label': 'Select' });
+    const cb = h('input', { type: 'checkbox', 'aria-label': `Select ${t.payee || 'transaction'}` });
     const cl = categoryLabel(t);
-    const tr = h('tr', { class: `click ${selection.has(t.id) ? 'sel' : ''} ${t.date > today ? 'future' : ''}`, onclick: (e) => { if (e.target !== cb) openTxnEditor({ id: t.id }); } },
+    const tr = h('tr', { class: `click ${t.date > today ? 'future' : ''}` },
       h('td', { class: 'w-check' }, cb),
       h('td', { class: 'date' }, fmtDate(t.date)),
       h('td', { class: 'payee' }, t.payee || h('span', { class: 'muted' }, '(no payee)'), t.memo ? h('div', { class: 'memo' }, t.memo) : null),
       h('td', { class: `cat ${cl ? '' : 'uncat'}` }, cl || 'Uncategorized'),
       h('td', { class: 'hide-sm ink-2' }, t.account_name),
       h('td', { class: 'hide-sm' }, t.status === 'R' ? h('span', { class: 'badge accent' }, 'R') : t.status === 'c' ? h('span', { class: 'badge' }, 'c') : ''),
-      h('td', { class: `amt ${t.amount > 0 ? 'pos' : ''}` }, money(t.amount)));
-    cb.addEventListener('change', () => { if (cb.checked) selection.add(t.id); else selection.delete(t.id); tr.classList.toggle('sel', cb.checked); refreshBulk(); });
+      h('td', { class: `amt ${t.amount > 0 ? 'pos' : ''}` }, money(t.amount)),
+      editButton(t.payee || 'transaction', () => openTxnEditor({ id: t.id })));
+    selectable(tr, cb, t.id, selection, bar);
     tbody.append(tr);
   }
   card.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-    h('thead', null, h('tr', null, h('th', null, allBox), h('th', null, 'Date'), h('th', null, 'Payee'), h('th', null, 'Category'), h('th', { class: 'hide-sm' }, 'Account'), h('th', { class: 'hide-sm' }, 'Clr'), h('th', { class: 'r' }, 'Amount'))),
+    h('thead', null, h('tr', null, h('th', null, allBox), h('th', null, 'Date'), h('th', null, 'Payee'), h('th', null, 'Category'), h('th', { class: 'hide-sm' }, 'Account'), h('th', { class: 'hide-sm' }, 'Clr'), h('th', { class: 'r' }, 'Amount'), h('th', null, h('span', { class: 'sr-only' }, 'Edit')))),
     tbody)));
   if (!rows.length) card.append(h('div', { class: 'empty' }, state.accounts.length ? 'No transactions match.' : 'Add an account to get started.'));
   if (data.total > rows.length) card.append(h('div', { class: 'more' }, h('button', { class: 'btn', onclick: () => navigate(`#/transactions${qs({ ...f, limit: limit + 1000 })}`) }, `Show more (${(data.total - rows.length).toLocaleString()} more)`)));
-  el.append(card);
-
-  // Bulk actions
-  const bulkCat = h('select', null, categoryOptions('', { blank: 'Uncategorized' }));
-  const run = async (body, msg) => {
-    const r = await attempt(() => api.post('/transactions/bulk', { ids: [...selection], ...body }));
-    if (!r) return;
-    selection.clear();
-    await changed();
-    toast(`${msg(r.changed)}${r.skipped ? ` (${r.skipped} skipped — transfers and splits are edited one at a time)` : ''}`);
-  };
-  bulk.append(h('strong', null, ''),
-    h('span', { class: 'spacer' }),
-    bulkCat, h('button', { class: 'btn', onclick: () => run({ action: 'category', value: bulkCat.value || null }, (n) => `Categorized ${n}.`) }, 'Set category'),
-    h('button', { class: 'btn', onclick: () => run({ action: 'status', value: 'c' }, (n) => `Marked ${n} cleared.`) }, 'Mark cleared'),
-    h('button', { class: 'btn', onclick: () => run({ action: 'status', value: '' }, (n) => `Marked ${n} uncleared.`) }, 'Mark uncleared'),
-    h('button', { class: 'btn danger', onclick: async () => {
-      if (!(await confirmDialog(`Delete ${selection.size} transactions? Matching transfers in other accounts are removed too.`, { title: 'Delete transactions?', ok: 'Delete', danger: true }))) return;
-      run({ action: 'delete' }, (n) => `Deleted ${n}.`);
-    } }, 'Delete'),
-    h('button', { class: 'btn ghost', onclick: () => { selection.clear(); changed(); } }, 'Clear selection'));
-  el.append(bulk);
-  refreshBulk();
+  el.append(card, h('p', { class: 'muted small' }, 'Click rows to select them, then act on them together below. Use Edit to change one.'), bar);
 }

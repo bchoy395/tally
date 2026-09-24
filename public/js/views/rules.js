@@ -1,4 +1,4 @@
-import { api, h, pageHead, icon, changed, attempt, toast, categoryOptions, field, openDialog, confirmDialog, catPath } from '../core.js';
+import { api, h, pageHead, icon, changed, attempt, toast, categoryOptions, field, openDialog, confirmDialog, catPath, editButton } from '../core.js';
 
 function openRuleDialog(r = null) {
   const match = h('input', { type: 'text', value: r ? r.match : '', placeholder: 'e.g. AMZN MKTP' });
@@ -39,11 +39,12 @@ export async function render(el) {
   if (!rules.length) card.append(h('div', { class: 'empty' }, 'No rules yet.'));
   else {
     card.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-      h('thead', null, h('tr', null, h('th', null, 'If payee contains'), h('th', null, 'Rename to'), h('th', null, 'Category'))),
-      h('tbody', null, rules.map((r) => h('tr', { class: 'click', onclick: () => openRuleDialog(r) },
+      h('thead', null, h('tr', null, h('th', null, 'If payee contains'), h('th', null, 'Rename to'), h('th', null, 'Category'), h('th', null, h('span', { class: 'sr-only' }, 'Edit')))),
+      h('tbody', null, rules.map((r) => h('tr', null,
         h('td', null, h('code', null, r.match)),
         h('td', { class: r.payee ? '' : 'muted' }, r.payee || '—'),
-        h('td', { class: `cat ${r.category_id ? '' : 'uncat'}` }, r.category_id ? catPath(r.category_id) : '—')))))));
+        h('td', { class: `cat ${r.category_id ? '' : 'uncat'}` }, r.category_id ? catPath(r.category_id) : '—'),
+        editButton(`rule for ${r.match}`, () => openRuleDialog(r))))))));
   }
   el.append(card);
 }

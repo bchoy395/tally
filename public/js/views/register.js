@@ -1,9 +1,10 @@
 import {
   api, state, h, clear, money, fmtDate, fmtDateLong, pageHead, icon, categoryLabel, changed, toast, attempt, options, field,
-  openDialog, confirmDialog, parseAmount, todayISO, RANGES, rangeDates, ACCOUNT_TYPES, navigate,
+  openDialog, confirmDialog, parseAmount, todayISO, RANGES, rangeDates, ACCOUNT_TYPES, navigate, editButton,
 } from '../core.js';
 import { openTxnEditor } from '../editor.js';
 import { openAccountDialog, openAdjustDialog } from './accounts.js';
+import { bulkBar, selectable, selectAllBox } from './bulk.js';
 
 const prefs = new Map(); // per-account filters survive re-renders
 let recon = null;        // { accountId, date, balance, checked: Set }
@@ -117,7 +118,7 @@ export async function render(el, [idStr]) {
   const id = Number(idStr);
   const acct = state.accounts.find((a) => a.id === id);
   if (!acct) { el.append(h('div', { class: 'empty' }, 'That account no longer exists.')); return; }
-  if (!prefs.has(id)) prefs.set(id, { q: '', range: 'all', status: '', limit: 300 });
+  if (!prefs.has(id)) prefs.set(id, { q: '', range: 'all', status: '', limit: 300, selection: new Set() });
   const p = prefs.get(id);
   const { rows } = await api(`/transactions?account_id=${id}&limit=50000`);
   const liability = acct.type === 'credit' || acct.type === 'loan';
@@ -128,7 +129,7 @@ export async function render(el, [idStr]) {
     reconciling ? null : h('button', { class: 'btn', onclick: () => startReconcile(acct) }, 'Reconcile'),
     ['investment', 'asset', 'loan'].includes(acct.type) ? h('button', { class: 'btn', onclick: () => openAdjustDialog(acct) }, 'Update balance') : null,
     h('button', { class: 'btn', onclick: () => navigate(`#/import?account_id=${id}`) }, 'Import'),
-    h('button', { class: 'btn', onclick: () => openAccountDialog(acct) }, 'Settings')));
+    h('button', { class: 'btn', onclick: () => openAccountDialog(acct) }, 'Edit account')));
 
   const show = (c) => money(liability ? -c : c);
   const tiles = [
@@ -145,10 +146,10 @@ export async function render(el, [idStr]) {
   const filtered = rows.filter((t) => matches(t, p));
   const search = h('input', { type: 'search', placeholder: 'Search payee, memo, amount…', value: p.q, 'data-search': true });
   let timer;
-  search.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => { p.q = search.value; p.limit = 300; p.refocus = true; changed(); }, 250); });
+  search.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => { p.q = search.value; p.limit = 300; p.refocus = true; p.selection.clear(); changed(); }, 250); });
   if (p.refocus) { p.refocus = false; requestAnimationFrame(() => { search.focus(); search.setSelectionRange(search.value.length, search.value.length); }); }
-  const range = h('select', { onchange: (e) => { p.range = e.target.value; changed(); } }, options(Object.entries(RANGES), p.range));
-  const status = h('select', { onchange: (e) => { p.status = e.target.value; changed(); } }, options(STATUS_FILTERS, p.status));
+  const range = h('select', { onchange: (e) => { p.range = e.target.value; p.selection.clear(); changed(); } }, options(Object.entries(RANGES), p.range));
+  const status = h('select', { onchange: (e) => { p.status = e.target.value; p.selection.clear(); changed(); } }, options(STATUS_FILTERS, p.status));
   const sum = filtered.reduce((s, t) => s + t.amount, 0);
   const filtering = p.q || p.range !== 'all' || p.status;
 
@@ -158,9 +159,13 @@ export async function render(el, [idStr]) {
       h('a', { class: 'btn sm ghost', href: `/api/export.csv?account_id=${id}`, download: '' }, 'Export CSV')));
 
   const [outH, inH] = acct.type === 'credit' ? ['Charge', 'Payment'] : ['Payment', 'Deposit'];
+  const shown = filtered.slice(0, p.limit);
+  const visible = new Set(shown.map((t) => t.id));
+  for (const sid of [...p.selection]) if (!visible.has(sid)) p.selection.delete(sid);
+  const bar = bulkBar(p.selection);
   const tbody = h('tbody');
   const today = todayISO();
-  for (const t of filtered.slice(0, p.limit)) {
+  for (const t of shown) {
     const cl = categoryLabel(t);
     const clr = h('button', { class: `clr ${t.status}`, title: { '': 'Uncleared — click to mark cleared', c: 'Cleared — click to unmark', R: 'Reconciled' }[t.status], 'aria-label': 'Toggle cleared' }, t.status === 'R' ? 'R' : t.status === 'c' ? 'c' : '');
     clr.addEventListener('click', async (e) => {
@@ -170,7 +175,9 @@ export async function render(el, [idStr]) {
       if (t.status === 'R') next = '';
       if (await attempt(() => api.post('/transactions/bulk', { ids: [t.id], action: 'status', value: next }))) changed();
     });
-    tbody.append(h('tr', { class: `click ${t.date > today ? 'future' : ''}`, onclick: () => openTxnEditor({ id: t.id }) },
+    const cb = h('input', { type: 'checkbox', 'aria-label': `Select ${t.payee || 'transaction'}` });
+    const tr = h('tr', { class: `click ${t.date > today ? 'future' : ''}` },
+      h('td', { class: 'w-check' }, cb),
       h('td', { class: 'date' }, fmtDate(t.date)),
       h('td', { class: 'hide-sm muted' }, t.num),
       h('td', { class: 'payee' }, t.payee || h('span', { class: 'muted' }, '(no payee)'), t.memo ? h('div', { class: 'memo' }, t.memo) : null),
@@ -178,11 +185,14 @@ export async function render(el, [idStr]) {
       h('td', null, clr),
       h('td', { class: 'amt' }, t.amount < 0 ? money(-t.amount) : ''),
       h('td', { class: 'amt pos' }, t.amount > 0 ? money(t.amount) : ''),
-      h('td', { class: `amt hide-sm ${t.running_balance < 0 && !liability ? 'neg' : ''}` }, show(t.running_balance))));
+      h('td', { class: `amt hide-sm ${t.running_balance < 0 && !liability ? 'neg' : ''}` }, show(t.running_balance)),
+      editButton(t.payee || 'transaction', () => openTxnEditor({ id: t.id })));
+    selectable(tr, cb, t.id, p.selection, bar);
+    tbody.append(tr);
   }
   card.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-    h('thead', null, h('tr', null, h('th', null, 'Date'), h('th', { class: 'hide-sm' }, 'Num'), h('th', null, 'Payee'), h('th', { class: 'hide-sm' }, 'Category'),
-      h('th', { title: 'Cleared status' }, 'Clr'), h('th', { class: 'r' }, outH), h('th', { class: 'r' }, inH), h('th', { class: 'r hide-sm' }, liability ? 'Owed' : 'Balance'))),
+    h('thead', null, h('tr', null, h('th', null, selectAllBox(shown, p.selection, bar, card)), h('th', null, 'Date'), h('th', { class: 'hide-sm' }, 'Num'), h('th', null, 'Payee'), h('th', { class: 'hide-sm' }, 'Category'),
+      h('th', { title: 'Cleared status' }, 'Clr'), h('th', { class: 'r' }, outH), h('th', { class: 'r' }, inH), h('th', { class: 'r hide-sm' }, liability ? 'Owed' : 'Balance'), h('th', null, h('span', { class: 'sr-only' }, 'Edit')))),
     tbody)));
   if (!filtered.length) {
     card.append(h('div', { class: 'empty' }, rows.length ? 'No transactions match these filters.' : 'No transactions yet. Press N to add one, or import a statement.'));
@@ -190,6 +200,6 @@ export async function render(el, [idStr]) {
   if (filtered.length > p.limit) {
     card.append(h('div', { class: 'more' }, h('button', { class: 'btn', onclick: () => { p.limit += 1000; changed(); } }, `Show more (${(filtered.length - p.limit).toLocaleString()} older)`)));
   }
-  el.append(card);
-  el.append(h('p', { class: 'muted small' }, 'Shortcuts: ', h('kbd', null, 'N'), ' new transaction · ', h('kbd', null, '/'), ' search'));
+  el.append(card, bar);
+  el.append(h('p', { class: 'muted small' }, 'Click rows to select them · ', h('kbd', null, 'N'), ' new transaction · ', h('kbd', null, '/'), ' search'));
 }
