@@ -1,0 +1,12 @@
+{
+  "name": "tally",
+  "version": "1.0.0",
+  "description": "Private, local personal finance manager — a Quicken replacement.",
+  "private": true,
+  "main": "server.js",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test \"test/*.test.js\""
+  }
+}

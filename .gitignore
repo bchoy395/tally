@@ -1,0 +1,9 @@
+# Never commit financial data — it lives outside this folder, but guard against copies landing here.
+*.db
+*.db-wal
+*.db-shm
+tally-backup-*.json
+tally-transactions-*.csv
+node_modules/
+.DS_Store
+.claude/
