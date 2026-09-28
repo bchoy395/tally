@@ -1,4 +1,4 @@
-import { api, h, pageHead, icon, changed, attempt, toast, categoryOptions, field, openDialog, confirmDialog, catPath, editButton } from '../core.js';
+import { api, h, pageHead, icon, changed, attempt, toast, categoryOptions, field, openDialog, confirmDialog, catPath, editButton, sortableTable } from '../core.js';
 
 function openRuleDialog(r = null) {
   const match = h('input', { type: 'text', value: r ? r.match : '', placeholder: 'e.g. AMZN MKTP' });
@@ -38,13 +38,21 @@ export async function render(el) {
   const card = h('div', { class: 'card' });
   if (!rules.length) card.append(h('div', { class: 'empty' }, 'No rules yet.'));
   else {
-    card.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-      h('thead', null, h('tr', null, h('th', null, 'If payee contains'), h('th', null, 'Rename to'), h('th', null, 'Category'), h('th', null, h('span', { class: 'sr-only' }, 'Edit')))),
-      h('tbody', null, rules.map((r) => h('tr', null,
-        h('td', null, h('code', null, r.match)),
-        h('td', { class: r.payee ? '' : 'muted' }, r.payee || '—'),
-        h('td', { class: `cat ${r.category_id ? '' : 'uncat'}` }, r.category_id ? catPath(r.category_id) : '—'),
-        editButton(`rule for ${r.match}`, () => openRuleDialog(r))))))));
+    const t = sortableTable({
+      id: 'rules', rows: rules,
+      columns: [
+        { label: 'If payee contains', key: 'match', value: (x) => x.match },
+        { label: 'Rename to', key: 'payee', value: (x) => x.payee || null },
+        { label: 'Category', key: 'category', value: (x) => (x.category_id ? catPath(x.category_id) : null) },
+        { head: h('span', { class: 'sr-only' }, 'Edit') },
+      ],
+      renderRow: (x) => h('tr', null,
+        h('td', null, h('code', null, x.match)),
+        h('td', { class: x.payee ? '' : 'muted' }, x.payee || '—'),
+        h('td', { class: `cat ${x.category_id ? '' : 'uncat'}` }, x.category_id ? catPath(x.category_id) : '—'),
+        editButton(`rule for ${x.match}`, () => openRuleDialog(x))),
+    });
+    card.append(h('div', { class: 'table-wrap' }, t.table));
   }
   el.append(card);
 }

@@ -1,5 +1,5 @@
 import {
-  api, state, h, money, fmtDate, fmtDateLong, pageHead, changed, toast, options, accountOptions, field, readFile, catPath, navigate, ACCOUNT_TYPES, plural,
+  api, state, h, money, fmtDate, fmtDateLong, pageHead, changed, toast, options, accountOptions, field, readFile, catPath, navigate, ACCOUNT_TYPES, plural, sortableTable,
 } from '../core.js';
 
 let job = null; // { name, text, account_id, options, preview, result }
@@ -128,7 +128,6 @@ function bankPreview(el) {
         } }, 'Update preview')))));
   }
   const dl = h('datalist', { id: 'dl-import-cats' }, state.categories.filter((c) => !c.hidden).map((c) => h('option', { value: c.path })));
-  const tb = h('tbody');
   const rows = p.rows.map((r) => {
     const cb = h('input', { type: 'checkbox', checked: r.include });
     const payee = h('input', { type: 'text', value: r.payee, style: { width: '100%' } });
@@ -139,19 +138,28 @@ function bankPreview(el) {
     const syncHint = () => { const t = cat.value.trim(); hint.textContent = t && !known.has(t.toLowerCase()) ? 'New category — will be created' : ''; };
     cat.addEventListener('input', syncHint);
     syncHint();
-    tb.append(h('tr', { class: r.include ? '' : 'future' },
+    const tr = h('tr', { class: r.include ? '' : 'future' },
       h('td', { class: 'w-check' }, cb),
       h('td', { class: 'date' }, fmtDate(r.date)),
       h('td', { style: { minWidth: '200px' } }, payee, r.payee !== r.original_payee ? h('div', { class: 'memo' }, `was ${r.original_payee}`) : r.memo ? h('div', { class: 'memo' }, r.memo) : null),
       h('td', { style: { minWidth: '180px' } }, cat, hint),
       h('td', { class: `amt ${r.amount > 0 ? 'pos' : ''}` }, money(r.amount)),
-      h('td', null, r.duplicate ? h('span', { class: `badge ${r.duplicate === 'exact' ? 'bad' : 'warn'}` }, r.duplicate === 'exact' ? 'Already imported' : 'Possible duplicate') : null)));
-    cb.addEventListener('change', () => { cb.closest('tr').classList.toggle('future', !cb.checked); updateBtn(); });
-    return { r, cb, payee, cat };
+      h('td', null, r.duplicate ? h('span', { class: `badge ${r.duplicate === 'exact' ? 'bad' : 'warn'}` }, r.duplicate === 'exact' ? 'Already imported' : 'Possible duplicate') : null));
+    cb.addEventListener('change', () => { tr.classList.toggle('future', !cb.checked); updateBtn(); });
+    return { r, cb, payee, cat, tr };
   });
-  el.append(h('div', { class: 'card', style: { marginBottom: '16px' } }, dl, h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-    h('thead', null, h('tr', null, h('th', null, ''), h('th', null, 'Date'), h('th', null, 'Payee'), h('th', null, 'Category'), h('th', { class: 'r' }, 'Amount'), h('th', null, ''))),
-    tb))));
+  const ptable = sortableTable({
+    id: 'import-preview', rows, renderRow: (x) => x.tr,
+    columns: [
+      { head: '' },
+      { label: 'Date', key: 'date', value: (x) => [x.r.date, x.r.i] },
+      { label: 'Payee', key: 'payee', value: (x) => x.payee.value || null },
+      { label: 'Category', key: 'category', value: (x) => x.cat.value || null },
+      { label: 'Amount', key: 'amount', cls: 'r', value: (x) => x.r.amount },
+      { label: 'Status', key: 'dup', value: (x) => ({ exact: 2, likely: 1 })[x.r.duplicate] || 0 },
+    ],
+  });
+  el.append(h('div', { class: 'card', style: { marginBottom: '16px' } }, dl, h('div', { class: 'table-wrap' }, ptable.table)));
   const btn = h('button', { class: 'btn primary' });
   const updateBtn = () => { const n = rows.filter((x) => x.cb.checked).length; btn.textContent = `Import ${n} transaction${n === 1 ? '' : 's'}`; btn.disabled = !n; };
   updateBtn();

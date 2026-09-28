@@ -1,4 +1,4 @@
-import { api, h, money, fmtMonth, fmtMonthShort, fmtDateLong, pageHead, options, qs, RANGES, rangeDates, monthEnd } from '../core.js';
+import { api, h, money, fmtMonth, fmtMonthShort, fmtDateLong, pageHead, options, qs, RANGES, rangeDates, monthEnd, sortableTable } from '../core.js';
 import { barList, columnChart, areaChart } from '../charts.js';
 
 const TABS = [['spending', 'Spending'], ['income', 'Income'], ['payees', 'Payees'], ['cashflow', 'Income vs spending'], ['networth', 'Net worth']];
@@ -57,7 +57,8 @@ async function cashflow(el, q) {
     series: [{ name: 'Income', values: data.map((m) => m.income), color: 'var(--series-1)' }, { name: 'Spending', values: data.map((m) => m.expense), color: 'var(--series-2)' }],
     onClick: (i) => go('spending', { from: `${data[i].month}-01`, to: monthEnd(data[i].month) }),
   });
-  el.append(table(['Month', 'Income', 'Spending', 'Net'], [...data].reverse().map((m) => [fmtMonth(m.month), money(m.income), money(m.expense), h('span', { class: m.net < 0 ? 'neg' : '' }, money(m.net))])));
+  el.append(table('report-cashflow', ['Month', 'Income', 'Spending', 'Net'], data, (m) => [m.month, m.income, m.expense, m.net],
+    (m) => [fmtMonth(m.month), money(m.income), money(m.expense), h('span', { class: m.net < 0 ? 'neg' : '' }, money(m.net))]));
 }
 
 async function networth(el, q) {
@@ -79,15 +80,20 @@ async function networth(el, q) {
     values: data.map((m) => m.net), height: 300,
     rows: (i) => [{ label: 'Assets', value: money(data[i].assets) }, { label: 'Liabilities', value: money(data[i].liabilities) }, { label: 'Net worth', value: money(data[i].net) }],
   });
-  el.append(table(['Month end', 'Assets', 'Liabilities', 'Net worth'], [...data].reverse().map((m) => [fmtMonth(m.month), money(m.assets), money(m.liabilities), money(m.net)])));
+  el.append(table('report-networth', ['Month end', 'Assets', 'Liabilities', 'Net worth'], data, (m) => [m.month, m.assets, m.liabilities, m.net],
+    (m) => [fmtMonth(m.month), money(m.assets), money(m.liabilities), money(m.net)]));
 }
 
-function table(headers, rows) {
+// headers[0] is the month column; values(row) gives sortable raw values, cells(row) what to display.
+function table(id, headers, rows, values, cells) {
+  const t = sortableTable({
+    id, rows, defaultSort: { key: 0, dir: 'desc' },
+    columns: headers.map((label, i) => ({ label, key: i, cls: i ? 'r' : '', value: (r) => values(r)[i] })),
+    renderRow: (r) => h('tr', null, cells(r).map((c, i) => h('td', { class: i ? 'amt' : '' }, c))),
+  });
   return h('details', { class: 'card', style: { marginTop: '16px' } },
     h('summary', { style: { padding: '12px 16px', cursor: 'pointer', fontWeight: 600 } }, 'Table view'),
-    h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-      h('thead', null, h('tr', null, headers.map((x, i) => h('th', { class: i ? 'r' : '' }, x)))),
-      h('tbody', null, rows.map((r) => h('tr', null, r.map((c, i) => h('td', { class: i ? 'amt' : '' }, c))))))));
+    h('div', { class: 'table-wrap' }, t.table));
 }
 
 export async function render(el, [tab = 'spending'], query) {

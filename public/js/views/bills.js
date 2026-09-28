@@ -1,10 +1,11 @@
 import {
   api, state, h, money, fmtDate, pageHead, icon, changed, attempt, toast, options, accountOptions, field, openDialog, confirmDialog,
-  categoryInput, resolveCategoryText, ensureCategory, parseAmount, centsToInput, todayISO, editButton,
+  categoryInput, resolveCategoryText, ensureCategory, parseAmount, centsToInput, todayISO, editButton, sortableTable,
 } from '../core.js';
 
 const FREQ = [['monthly', 'Monthly'], ['weekly', 'Weekly'], ['biweekly', 'Every 2 weeks'], ['quarterly', 'Quarterly'], ['yearly', 'Yearly'], ['once', 'Once']];
 const freqLabel = Object.fromEntries(FREQ);
+const FREQ_ORDER = { weekly: 1, biweekly: 2, monthly: 3, quarterly: 4, yearly: 5, once: 6 };
 
 function openScheduleDialog(s = null) {
   if (!state.accounts.some((a) => !a.closed)) { toast('Add an account first.', 'error'); return; }
@@ -58,39 +59,57 @@ export async function render(el) {
   const up = h('div', { class: 'card', style: { marginBottom: '16px' } }, h('div', { class: 'card-head' }, h('h2', null, 'Next 45 days')));
   if (!upcoming.length) up.append(h('div', { class: 'empty' }, 'Nothing scheduled.'));
   else {
-    const tb = h('tbody');
+    // The running total is always by due date, whatever order the table is sorted in.
     let running = 0;
-    for (const u of upcoming) {
-      running += u.amount;
-      tb.append(h('tr', null,
+    const items = upcoming.map((u, i) => ({ ...u, idx: i, running: (running += u.amount) }));
+    const t = sortableTable({
+      id: 'bills-upcoming', rows: items, defaultSort: { key: 'date', dir: 'asc' },
+      columns: [
+        { label: 'Due', key: 'date', value: (u) => [u.date, u.idx] },
+        { label: 'Payee', key: 'payee', value: (u) => u.payee },
+        { head: '', cls: 'hide-sm' },
+        { label: 'Amount', key: 'amount', cls: 'r', value: (u) => u.amount },
+        { head: 'Running total', cls: 'r hide-sm' },
+        { head: '' },
+      ],
+      renderRow: (u) => h('tr', null,
         h('td', { class: 'date' }, fmtDate(u.date), u.overdue ? [' ', h('span', { class: 'badge bad' }, 'Overdue')] : null),
         h('td', null, u.payee, h('div', { class: 'memo' }, `${u.account_name} · ${catText(u)}`)),
         h('td', { class: 'hide-sm' }, u.auto_enter ? h('span', { class: 'badge accent' }, 'Auto') : ''),
         h('td', { class: `amt ${u.amount > 0 ? 'pos' : 'neg'}` }, money(u.amount)),
-        h('td', { class: 'amt hide-sm muted' }, money(running)),
+        h('td', { class: 'amt hide-sm muted' }, money(u.running)),
         h('td', { class: 'r' }, u.is_next ? h('div', { class: 'row', style: { justifyContent: 'flex-end' } },
           h('button', { class: 'btn sm', onclick: async () => { if (await attempt(() => api.post(`/scheduled/${u.id}/enter`), `Entered ${u.payee}.`)) await changed(); } }, 'Enter'),
-          h('button', { class: 'btn sm ghost', onclick: async () => { if (await attempt(() => api.post(`/scheduled/${u.id}/skip`), 'Skipped this one.')) await changed(); } }, 'Skip')) : null)));
-    }
-    up.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-      h('thead', null, h('tr', null, h('th', null, 'Due'), h('th', null, 'Payee'), h('th', { class: 'hide-sm' }, ''), h('th', { class: 'r' }, 'Amount'), h('th', { class: 'r hide-sm' }, 'Cumulative'), h('th', null, ''))),
-      tb)));
+          h('button', { class: 'btn sm ghost', onclick: async () => { if (await attempt(() => api.post(`/scheduled/${u.id}/skip`), 'Skipped this one.')) await changed(); } }, 'Skip')) : null)),
+    });
+    up.append(h('div', { class: 'table-wrap' }, t.table));
   }
   el.append(up);
 
   const all = h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h2', null, 'All schedules')));
   if (!list.length) all.append(h('div', { class: 'empty' }, 'Schedule rent, subscriptions and paychecks so they show up here before they hit your account.'));
   else {
-    all.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-      h('thead', null, h('tr', null, h('th', null, 'Payee'), h('th', null, 'Repeats'), h('th', null, 'Next'), h('th', { class: 'hide-sm' }, 'Account'), h('th', { class: 'hide-sm' }, 'Category'), h('th', { class: 'r' }, 'Amount'), h('th', null, h('span', { class: 'sr-only' }, 'Edit')))),
-      h('tbody', null, list.map((s) => h('tr', null,
-        h('td', null, s.payee, s.auto_enter ? [' ', h('span', { class: 'badge accent' }, 'Auto')] : null),
-        h('td', { class: 'ink-2' }, freqLabel[s.frequency], s.end_date ? h('div', { class: 'memo' }, `until ${fmtDate(s.end_date)}`) : null),
-        h('td', { class: 'date' }, fmtDate(s.next_date)),
-        h('td', { class: 'hide-sm ink-2' }, s.account_name),
-        h('td', { class: 'cat hide-sm' }, catText(s)),
-        h('td', { class: `amt ${s.amount > 0 ? 'pos' : 'neg'}` }, money(s.amount)),
-        editButton(s.payee, () => openScheduleDialog(s))))))));
+    const t = sortableTable({
+      id: 'bills-all', rows: list,
+      columns: [
+        { label: 'Payee', key: 'payee', value: (x) => x.payee },
+        { label: 'Repeats', key: 'freq', value: (x) => FREQ_ORDER[x.frequency] },
+        { label: 'Next', key: 'next', value: (x) => x.next_date },
+        { label: 'Account', key: 'account', cls: 'hide-sm', value: (x) => x.account_name },
+        { label: 'Category', key: 'category', cls: 'hide-sm', value: (x) => catText(x) },
+        { label: 'Amount', key: 'amount', cls: 'r', value: (x) => x.amount },
+        { head: h('span', { class: 'sr-only' }, 'Edit') },
+      ],
+      renderRow: (x) => h('tr', null,
+        h('td', null, x.payee, x.auto_enter ? [' ', h('span', { class: 'badge accent' }, 'Auto')] : null),
+        h('td', { class: 'ink-2' }, freqLabel[x.frequency], x.end_date ? h('div', { class: 'memo' }, `until ${fmtDate(x.end_date)}`) : null),
+        h('td', { class: 'date' }, fmtDate(x.next_date)),
+        h('td', { class: 'hide-sm ink-2' }, x.account_name),
+        h('td', { class: 'cat hide-sm' }, catText(x)),
+        h('td', { class: `amt ${x.amount > 0 ? 'pos' : 'neg'}` }, money(x.amount)),
+        editButton(x.payee, () => openScheduleDialog(x))),
+    });
+    all.append(h('div', { class: 'table-wrap' }, t.table));
   }
   el.append(all);
 }

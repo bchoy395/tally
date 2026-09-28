@@ -1,5 +1,5 @@
 import {
-  api, h, money, fmtDate, fmtMonth, fmtMonthShort, pageHead, icon, categoryLabel, changed, attempt, qs, monthEnd, todayISO, editButton,
+  api, h, money, fmtDate, fmtMonth, fmtMonthShort, pageHead, icon, categoryLabel, changed, attempt, qs, monthEnd, todayISO, editButton, sortableTable,
 } from '../core.js';
 import { areaChart, barList } from '../charts.js';
 import { openTxnEditor } from '../editor.js';
@@ -102,17 +102,24 @@ export async function render(el) {
   el.append(h('div', { class: 'grid cols-2', style: { marginTop: '16px' } }, spend, bills));
 
   const recent = h('div', { class: 'card', style: { marginTop: '16px' } }, h('div', { class: 'card-head' }, h('h2', null, 'Recent transactions'), h('a', { href: '#/transactions', class: 'small' }, 'See all')));
-  const tb = h('tbody');
-  for (const t of d.recent) {
-    const cl = categoryLabel(t);
-    tb.append(h('tr', { class: t.date > todayISO() ? 'future' : '' },
+  const recentTable = sortableTable({
+    id: 'dashboard-recent', rows: d.recent, defaultSort: { key: 'date', dir: 'desc' },
+    columns: [
+      { label: 'Date', key: 'date', value: (t) => [t.date, t.id] },
+      { label: 'Payee', key: 'payee', value: (t) => t.payee || null },
+      { label: 'Category', key: 'category', cls: 'hide-sm', value: (t) => categoryLabel(t) || null },
+      { label: 'Account', key: 'account', cls: 'hide-sm', value: (t) => t.account_name },
+      { label: 'Amount', key: 'amount', cls: 'r', value: (t) => t.amount },
+      { head: h('span', { class: 'sr-only' }, 'Edit') },
+    ],
+    renderRow: (t) => { const cl = categoryLabel(t); return h('tr', { class: t.date > todayISO() ? 'future' : '' },
       h('td', { class: 'date' }, fmtDate(t.date)),
       h('td', { class: 'payee' }, t.payee || h('span', { class: 'muted' }, '(no payee)')),
       h('td', { class: `cat ${cl ? '' : 'uncat'} hide-sm` }, cl || 'Uncategorized'),
       h('td', { class: 'hide-sm ink-2' }, t.account_name),
       h('td', { class: `amt ${t.amount > 0 ? 'pos' : ''}` }, money(t.amount)),
-      editButton(t.payee || 'transaction', () => openTxnEditor({ id: t.id }))));
-  }
-  recent.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data' }, tb)));
+      editButton(t.payee || 'transaction', () => openTxnEditor({ id: t.id }))); },
+  });
+  recent.append(h('div', { class: 'table-wrap' }, recentTable.table));
   el.append(recent);
 }

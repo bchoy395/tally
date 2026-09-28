@@ -389,3 +389,62 @@ export const plural = (n, one, many = `${one}s`) => `${Number(n).toLocaleString(
 export function editButton(what, onclick) {
   return h('td', { class: 'act' }, h('button', { type: 'button', class: 'btn sm', 'aria-label': `Edit ${what}`, onclick: (e) => { e.stopPropagation(); onclick(); } }, 'Edit'));
 }
+
+/* ---------------------------------------------------------------- sortable tables */
+
+// Sort choices survive re-renders and page changes (per table id) for the session.
+const sortState = new Map();
+
+function compareValues(a, b) {
+  if (Array.isArray(a)) {
+    for (let i = 0; i < a.length; i++) { const c = compareValues(a[i], b[i]); if (c) return c; }
+    return 0;
+  }
+  if (typeof a === 'number' && typeof b === 'number') return a - b;
+  return String(a).localeCompare(String(b), undefined, { sensitivity: 'base', numeric: true });
+}
+const isBlank = (v) => v === null || v === undefined || v === '';
+
+// columns: [{ label, key?, value?(row), cls?, head? }] — a column with a key is sortable.
+// Sorts the full `rows` list, then renders the first `limit` rows, so paging never hides the true top rows.
+export function sortableTable({ id, columns, rows, renderRow, defaultSort = null, limit = Infinity, onBody = null, cls = 'data' }) {
+  const thead = h('thead');
+  const tbody = h('tbody');
+  const table = h('table', { class: cls }, thead, tbody);
+  let sort = sortState.get(id) || defaultSort;
+  const result = { table, tbody, shown: [], sorted: [] };
+
+  function sorted() {
+    const col = sort && columns.find((c) => c.key === sort.key);
+    if (!col) return rows.slice();
+    const dir = sort.dir === 'desc' ? -1 : 1;
+    return rows.map((r, i) => [r, i, col.value(r)]).sort(([, ia, va], [, ib, vb]) => {
+      if (isBlank(va) || isBlank(vb)) return isBlank(va) && isBlank(vb) ? ia - ib : isBlank(va) ? 1 : -1; // blanks last
+      return compareValues(va, vb) * dir || ia - ib;
+    }).map(([r]) => r);
+  }
+  function renderHead() {
+    const tr = h('tr');
+    for (const c of columns) {
+      if (c.key === undefined) { tr.append(h('th', { class: c.cls || '' }, c.head ?? c.label)); continue; }
+      const active = sort && sort.key === c.key;
+      const next = active && sort.dir === 'asc' ? 'descending' : 'ascending';
+      tr.append(h('th', { class: `sortable ${c.cls || ''} ${active ? 'sorted' : ''}`, 'aria-sort': active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none' },
+        h('button', { type: 'button', class: 'th-btn', title: `Sort by ${c.label}, ${next}`, onclick: () => {
+          sort = { key: c.key, dir: active && sort.dir === 'asc' ? 'desc' : 'asc' };
+          sortState.set(id, sort);
+          renderHead(); renderBody();
+        } }, c.label, h('span', { class: 'sort-ind', 'aria-hidden': 'true' }, active ? (sort.dir === 'asc' ? '▲' : '▼') : '↕'))));
+    }
+    thead.replaceChildren(tr);
+  }
+  function renderBody() {
+    result.sorted = sorted();
+    result.shown = result.sorted.slice(0, limit);
+    tbody.replaceChildren(...result.shown.map(renderRow));
+    if (onBody) onBody(result);
+  }
+  renderHead();
+  renderBody();
+  return result;
+}

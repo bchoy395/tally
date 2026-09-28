@@ -35,6 +35,7 @@ export function bulkBar(selection) {
 
 // Clicking anywhere on the row (except its buttons, links and inputs) toggles selection.
 export function selectable(tr, cb, id, selection, bar) {
+  tr.dataset.id = id;
   const sync = () => { cb.checked = selection.has(id); tr.classList.toggle('sel', cb.checked); bar.refresh(); };
   tr.addEventListener('click', (e) => {
     if (e.target.closest('button, a, input, select')) return;
@@ -45,14 +46,18 @@ export function selectable(tr, cb, id, selection, bar) {
   sync();
 }
 
-export function selectAllBox(rows, selection, bar, root) {
-  const box = h('input', { type: 'checkbox', 'aria-label': 'Select all shown', checked: rows.length > 0 && rows.every((t) => selection.has(t.id)) });
+// Works on whatever rows are on screen, so it stays right after the table is re-sorted.
+export function selectAllBox(selection, bar, root) {
+  const box = h('input', { type: 'checkbox', 'aria-label': 'Select all shown' });
+  const rows = () => [...root.querySelectorAll('tbody tr[data-id]')];
+  box.sync = () => { const r = rows(); box.checked = r.length > 0 && r.every((tr) => selection.has(Number(tr.dataset.id))); };
   box.addEventListener('change', () => {
-    for (const t of rows) if (box.checked) selection.add(t.id); else selection.delete(t.id);
-    root.querySelectorAll('tbody tr').forEach((tr) => {
-      const cb = tr.querySelector('input[type=checkbox]');
-      if (cb) { cb.checked = box.checked; tr.classList.toggle('sel', box.checked); }
-    });
+    for (const tr of rows()) {
+      const id = Number(tr.dataset.id);
+      if (box.checked) selection.add(id); else selection.delete(id);
+      tr.querySelector('input[type=checkbox]').checked = box.checked;
+      tr.classList.toggle('sel', box.checked);
+    }
     bar.refresh();
   });
   return box;

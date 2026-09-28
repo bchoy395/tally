@@ -1,6 +1,6 @@
 import {
   api, state, h, clear, money, fmtDate, fmtDateLong, pageHead, icon, categoryLabel, changed, toast, attempt, options, field,
-  openDialog, confirmDialog, parseAmount, todayISO, RANGES, rangeDates, ACCOUNT_TYPES, navigate, editButton,
+  openDialog, confirmDialog, parseAmount, todayISO, RANGES, rangeDates, ACCOUNT_TYPES, navigate, editButton, sortableTable,
 } from '../core.js';
 import { openTxnEditor } from '../editor.js';
 import { openAccountDialog, openAdjustDialog } from './accounts.js';
@@ -77,7 +77,7 @@ function reconcileView(el, acct, rows) {
       await changed();
     };
   };
-  const tbody = h('tbody');
+  const rowEls = new Map(); // built once so re-sorting keeps each row's checkbox and state
   for (const t of open) {
     const cb = h('input', { type: 'checkbox', checked: recon.checked.has(t.id), 'aria-label': `Cleared: ${t.payee}` });
     const tr = h('tr', { class: `click ${recon.checked.has(t.id) ? 'sel' : ''}` },
@@ -95,16 +95,26 @@ function reconcileView(el, acct, rows) {
     };
     tr.addEventListener('click', (e) => { if (e.target !== cb) toggle(); });
     cb.addEventListener('change', () => { if (cb.checked !== recon.checked.has(t.id)) toggle(); });
-    tbody.append(tr);
+    rowEls.set(t.id, tr);
   }
+  const [outH, inH] = acct.type === 'credit' ? ['Charges', 'Payments'] : ['Payments', 'Deposits'];
+  const rtable = sortableTable({
+    id: 'reconcile', rows: open, renderRow: (t) => rowEls.get(t.id), defaultSort: { key: 'date', dir: 'asc' },
+    columns: [
+      { head: '' },
+      { label: 'Date', key: 'date', value: (t) => [t.date, t.id] },
+      { label: 'Num', key: 'num', cls: 'hide-sm', value: (t) => (t.num === '' ? null : Number.isFinite(Number(t.num)) ? Number(t.num) : t.num) },
+      { label: 'Payee', key: 'payee', value: (t) => t.payee || null },
+      { label: outH, key: 'out', cls: 'r', value: (t) => (t.amount < 0 ? -t.amount : null) },
+      { label: inH, key: 'in', cls: 'r', value: (t) => (t.amount > 0 ? t.amount : null) },
+    ],
+  });
   const all = h('button', { class: 'btn sm', onclick: () => { open.forEach((t) => recon.checked.add(t.id)); changed(); } }, 'Check all');
   const none = h('button', { class: 'btn sm', onclick: () => { recon.checked.clear(); changed(); } }, 'Clear all');
   el.append(h('div', { class: 'callout', style: { marginBottom: '12px' } },
     h('span', { class: 'grow' }, `Check off each transaction that appears on your statement ending ${fmtDateLong(recon.date)}. Missing one? Add it with `, h('kbd', null, 'N'), '.'),
     all, none));
-  el.append(h('div', { class: 'card' }, h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-    h('thead', null, h('tr', null, h('th', null, ''), h('th', null, 'Date'), h('th', { class: 'hide-sm' }, 'Num'), h('th', null, 'Payee'), h('th', { class: 'r' }, acct.type === 'credit' ? 'Charges' : 'Payments'), h('th', { class: 'r' }, acct.type === 'credit' ? 'Payments' : 'Deposits'))),
-    tbody)), open.length ? null : h('div', { class: 'empty' }, 'No unreconciled transactions up to this date.')));
+  el.append(h('div', { class: 'card' }, h('div', { class: 'table-wrap' }, rtable.table), open.length ? null : h('div', { class: 'empty' }, 'No unreconciled transactions up to this date.')));
   el.append(h('div', { class: 'recon-bar' },
     h('div', null, h('div', { class: 'label' }, liability ? 'Statement balance owed' : 'Statement balance'), h('div', { class: 'v' }, show(recon.balance))),
     h('div', null, h('div', { class: 'label' }, liability ? 'Cleared balance owed' : 'Cleared balance'), cleared),
@@ -159,13 +169,9 @@ export async function render(el, [idStr]) {
       h('a', { class: 'btn sm ghost', href: `/api/export.csv?account_id=${id}`, download: '' }, 'Export CSV')));
 
   const [outH, inH] = acct.type === 'credit' ? ['Charge', 'Payment'] : ['Payment', 'Deposit'];
-  const shown = filtered.slice(0, p.limit);
-  const visible = new Set(shown.map((t) => t.id));
-  for (const sid of [...p.selection]) if (!visible.has(sid)) p.selection.delete(sid);
   const bar = bulkBar(p.selection);
-  const tbody = h('tbody');
   const today = todayISO();
-  for (const t of shown) {
+  const renderRow = (t) => {
     const cl = categoryLabel(t);
     const clr = h('button', { class: `clr ${t.status}`, title: { '': 'Uncleared — click to mark cleared', c: 'Cleared — click to unmark', R: 'Reconciled' }[t.status], 'aria-label': 'Toggle cleared' }, t.status === 'R' ? 'R' : t.status === 'c' ? 'c' : '');
     clr.addEventListener('click', async (e) => {
@@ -188,17 +194,36 @@ export async function render(el, [idStr]) {
       h('td', { class: `amt hide-sm ${t.running_balance < 0 && !liability ? 'neg' : ''}` }, show(t.running_balance)),
       editButton(t.payee || 'transaction', () => openTxnEditor({ id: t.id })));
     selectable(tr, cb, t.id, p.selection, bar);
-    tbody.append(tr);
-  }
-  card.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-    h('thead', null, h('tr', null, h('th', null, selectAllBox(shown, p.selection, bar, card)), h('th', null, 'Date'), h('th', { class: 'hide-sm' }, 'Num'), h('th', null, 'Payee'), h('th', { class: 'hide-sm' }, 'Category'),
-      h('th', { title: 'Cleared status' }, 'Clr'), h('th', { class: 'r' }, outH), h('th', { class: 'r' }, inH), h('th', { class: 'r hide-sm' }, liability ? 'Owed' : 'Balance'), h('th', null, h('span', { class: 'sr-only' }, 'Edit')))),
-    tbody)));
+    return tr;
+  };
+  const allBox = selectAllBox(p.selection, bar, card);
+  const table = sortableTable({
+    id: 'register', rows: filtered, renderRow, limit: p.limit, defaultSort: { key: 'date', dir: 'desc' },
+    columns: [
+      { head: allBox },
+      { label: 'Date', key: 'date', value: (t) => [t.date, t.id] },
+      { label: 'Num', key: 'num', cls: 'hide-sm', value: (t) => (t.num === '' ? null : Number.isFinite(Number(t.num)) ? Number(t.num) : t.num) },
+      { label: 'Payee', key: 'payee', value: (t) => t.payee || null },
+      { label: 'Category', key: 'category', cls: 'hide-sm', value: (t) => categoryLabel(t) || null },
+      { label: 'Clr', key: 'status', value: (t) => ({ '': 0, c: 1, R: 2 })[t.status] },
+      { label: outH, key: 'out', cls: 'r', value: (t) => (t.amount < 0 ? -t.amount : null) },
+      { label: inH, key: 'in', cls: 'r', value: (t) => (t.amount > 0 ? t.amount : null) },
+      { label: liability ? 'Owed' : 'Balance', key: 'balance', cls: 'r hide-sm', value: (t) => (liability ? -t.running_balance : t.running_balance) },
+      { head: h('span', { class: 'sr-only' }, 'Edit') },
+    ],
+    // Selection only ever covers rows you can see.
+    onBody: ({ shown }) => {
+      const visible = new Set(shown.map((t) => t.id));
+      for (const sid of [...p.selection]) if (!visible.has(sid)) p.selection.delete(sid);
+      allBox.sync(); bar.refresh();
+    },
+  });
+  card.append(h('div', { class: 'table-wrap' }, table.table));
   if (!filtered.length) {
     card.append(h('div', { class: 'empty' }, rows.length ? 'No transactions match these filters.' : 'No transactions yet. Press N to add one, or import a statement.'));
   }
   if (filtered.length > p.limit) {
-    card.append(h('div', { class: 'more' }, h('button', { class: 'btn', onclick: () => { p.limit += 1000; changed(); } }, `Show more (${(filtered.length - p.limit).toLocaleString()} older)`)));
+    card.append(h('div', { class: 'more' }, h('button', { class: 'btn', onclick: () => { p.limit += 1000; changed(); } }, `Show more (${(filtered.length - p.limit).toLocaleString()} more)`)));
   }
   el.append(card, bar);
   el.append(h('p', { class: 'muted small' }, 'Click rows to select them · ', h('kbd', null, 'N'), ' new transaction · ', h('kbd', null, '/'), ' search'));

@@ -1,6 +1,6 @@
 import {
   api, state, h, money, fmtDate, pageHead, icon, categoryLabel, options, accountOptions, categoryOptions,
-  qs, navigate, RANGES, rangeDates, todayISO, catPath, editButton,
+  qs, navigate, RANGES, rangeDates, todayISO, catPath, editButton, sortableTable,
 } from '../core.js';
 import { openTxnEditor } from '../editor.js';
 import { bulkBar, selectable, selectAllBox } from './bulk.js';
@@ -14,7 +14,8 @@ export async function render(el, _parts, query) {
   const key = query.toString();
   if (key !== lastKey) { selection.clear(); lastKey = key; }
   const limit = Number(f.limit) || 500;
-  const data = await api(`/transactions${qs({ ...f, limit })}`);
+  // Fetch every match so sorting covers all of them; only the first `limit` rows are drawn.
+  const data = await api(`/transactions${qs({ ...f, limit: 50000 })}`);
   const set = (patch) => navigate(`#/transactions${qs({ ...f, ...patch, limit: '' })}`);
 
   const title = f.uncategorized ? 'Uncategorized transactions' : f.category_id ? catPath(Number(f.category_id)) || 'Transactions' : f.payee ? f.payee : 'Transactions';
@@ -42,10 +43,8 @@ export async function render(el, _parts, query) {
 
   const rows = data.rows;
   const bar = bulkBar(selection);
-  const allBox = selectAllBox(rows, selection, bar, el);
-  const tbody = h('tbody');
   const today = todayISO();
-  for (const t of rows) {
+  const renderRow = (t) => {
     const cb = h('input', { type: 'checkbox', 'aria-label': `Select ${t.payee || 'transaction'}` });
     const cl = categoryLabel(t);
     const tr = h('tr', { class: `click ${t.date > today ? 'future' : ''}` },
@@ -58,12 +57,26 @@ export async function render(el, _parts, query) {
       h('td', { class: `amt ${t.amount > 0 ? 'pos' : ''}` }, money(t.amount)),
       editButton(t.payee || 'transaction', () => openTxnEditor({ id: t.id })));
     selectable(tr, cb, t.id, selection, bar);
-    tbody.append(tr);
-  }
-  card.append(h('div', { class: 'table-wrap' }, h('table', { class: 'data' },
-    h('thead', null, h('tr', null, h('th', null, allBox), h('th', null, 'Date'), h('th', null, 'Payee'), h('th', null, 'Category'), h('th', { class: 'hide-sm' }, 'Account'), h('th', { class: 'hide-sm' }, 'Clr'), h('th', { class: 'r' }, 'Amount'), h('th', null, h('span', { class: 'sr-only' }, 'Edit')))),
-    tbody)));
+    return tr;
+  };
+  const allBox = selectAllBox(selection, bar, card);
+  const table = sortableTable({
+    id: 'transactions', rows, renderRow, limit, defaultSort: { key: 'date', dir: 'desc' },
+    columns: [
+      { head: allBox },
+      { label: 'Date', key: 'date', value: (t) => [t.date, t.id] },
+      { label: 'Payee', key: 'payee', value: (t) => t.payee || null },
+      { label: 'Category', key: 'category', value: (t) => categoryLabel(t) || null },
+      { label: 'Account', key: 'account', cls: 'hide-sm', value: (t) => t.account_name },
+      { label: 'Clr', key: 'status', cls: 'hide-sm', value: (t) => ({ '': 0, c: 1, R: 2 })[t.status] },
+      { label: 'Amount', key: 'amount', cls: 'r', value: (t) => t.amount },
+      { head: h('span', { class: 'sr-only' }, 'Edit') },
+    ],
+    onBody: () => { allBox.sync(); bar.refresh(); },
+  });
+  card.append(h('div', { class: 'table-wrap' }, table.table));
   if (!rows.length) card.append(h('div', { class: 'empty' }, state.accounts.length ? 'No transactions match.' : 'Add an account to get started.'));
-  if (data.total > rows.length) card.append(h('div', { class: 'more' }, h('button', { class: 'btn', onclick: () => navigate(`#/transactions${qs({ ...f, limit: limit + 1000 })}`) }, `Show more (${(data.total - rows.length).toLocaleString()} more)`)));
-  el.append(card, h('p', { class: 'muted small' }, 'Click rows to select them, then act on them together below. Use Edit to change one.'), bar);
+  if (rows.length > limit) card.append(h('div', { class: 'more' }, h('button', { class: 'btn', onclick: () => navigate(`#/transactions${qs({ ...f, limit: limit + 1000 })}`) }, `Show more (${(rows.length - limit).toLocaleString()} more)`)));
+  if (data.total > rows.length) card.append(h('p', { class: 'muted small', style: { padding: '0 16px' } }, `Showing the ${rows.length.toLocaleString()} most recent matches. Narrow the dates or search to see older ones.`));
+  el.append(card, h('p', { class: 'muted small' }, 'Click rows to select them, then act on them together below. Use Edit to change one. Click a column heading to sort.'), bar);
 }
