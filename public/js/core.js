@@ -336,6 +336,8 @@ export const ICONS = {
   menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon: '<path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/>',
   logo: '<path d="M4 19V9M9.5 19V5M15 19v-7M20.5 19V3"/>',
 };
 export function icon(name, size = 16) {
@@ -364,6 +366,17 @@ export function qs(obj) {
   return s2 ? `?${s2}` : '';
 }
 
+// 'auto' follows the computer's setting; the sidebar button picks light or dark explicitly.
+export function effectiveTheme() {
+  const t = document.documentElement.dataset.theme;
+  if (t) return t;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+export function setTheme(t) {
+  try { localStorage.setItem('tally-theme', t); } catch {}
+  applyTheme();
+  document.dispatchEvent(new CustomEvent('tally-theme'));
+}
 export function applyTheme() {
   let t = 'auto';
   try { t = localStorage.getItem('tally-theme') || 'auto'; } catch {}

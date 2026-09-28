@@ -1,4 +1,4 @@
-import { state, h, clear, icon, money, loadState, onChange, parseHash, ACCOUNT_GROUPS, toast, applyTheme } from './core.js';
+import { state, h, clear, icon, money, loadState, onChange, parseHash, ACCOUNT_GROUPS, toast, applyTheme, effectiveTheme, setTheme } from './core.js';
 import { openTxnEditor } from './editor.js';
 import { openAccountDialog } from './views/accounts.js';
 import * as dashboard from './views/dashboard.js';
@@ -19,19 +19,35 @@ const NAV = [
 ];
 const NAV_2 = [['import', 'Import', 'upload'], ['categories', 'Categories', 'tag'], ['rules', 'Rules', 'wand'], ['settings', 'Settings', 'gear']];
 
+// Light/dark toggle. Built once and re-attached, so re-rendering the sidebar doesn't pile up listeners.
+function themeButton() {
+  const btn = h('button', { type: 'button', class: 'btn ghost icon-btn theme-btn', onclick: () => setTheme(effectiveTheme() === 'dark' ? 'light' : 'dark') });
+  const update = () => {
+    const dark = effectiveTheme() === 'dark';
+    const label = dark ? 'Switch to light mode' : 'Switch to dark mode';
+    btn.replaceChildren(icon(dark ? 'sun' : 'moon', 18));
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+  };
+  document.addEventListener('tally-theme', update);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', update);
+  update();
+  return btn;
+}
+const sideThemeBtn = themeButton();
 const app = document.getElementById('app');
 const sidebar = h('nav', { class: 'sidebar', 'aria-label': 'Main' });
 const main = h('main', { class: 'main', id: 'main' });
 const mobileBar = h('div', { class: 'mobile-bar' },
   h('button', { class: 'btn ghost icon-btn', 'aria-label': 'Menu', onclick: () => app.classList.toggle('nav-open') }, icon('menu')),
-  h('strong', null, 'Tally'));
+  h('strong', { class: 'grow' }, 'Tally'), themeButton());
 app.append(sidebar, h('div', null, mobileBar, main));
 
 function renderSidebar(route) {
   clear(sidebar);
   const link = ([key, label, ic]) => h('a', { href: `#/${key}`, class: route === key ? 'active' : '' }, icon(ic), label);
   sidebar.append(
-    h('div', { class: 'brand' }, icon('logo', 20), 'Tally'),
+    h('div', { class: 'brand' }, icon('logo', 20), 'Tally', sideThemeBtn),
     h('div', { class: 'nav' }, NAV.map(link)));
 
   const open = state.accounts.filter((a) => !a.closed);

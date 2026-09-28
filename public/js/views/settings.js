@@ -1,4 +1,4 @@
-import { api, state, h, pageHead, changed, attempt, toast, options, field, openDialog, confirmDialog, readFile, applyTheme } from '../core.js';
+import { api, state, h, pageHead, changed, attempt, toast, options, field, openDialog, confirmDialog, readFile, setTheme } from '../core.js';
 
 const CURRENCIES = ['USD', 'CAD', 'EUR', 'GBP', 'AUD', 'NZD', 'CHF', 'JPY', 'MXN', 'INR', 'SGD', 'HKD', 'SEK', 'NOK', 'DKK', 'ZAR', 'BRL'];
 
@@ -8,8 +8,11 @@ export async function render(el) {
 
   let theme = 'auto';
   try { theme = localStorage.getItem('tally-theme') || 'auto'; } catch {}
-  const themeSel = h('select', { onchange: (e) => { try { localStorage.setItem('tally-theme', e.target.value); } catch {} applyTheme(); } },
-    options([['auto', 'Match my Mac'], ['light', 'Light'], ['dark', 'Dark']], theme));
+  const themeSel = h('select', { onchange: (e) => setTheme(e.target.value) },
+    options([['auto', 'Match my computer'], ['light', 'Light'], ['dark', 'Dark']], theme));
+  // Keep this in step when the sidebar button is used while Settings is open.
+  const syncSel = () => { if (!themeSel.isConnected) { document.removeEventListener('tally-theme', syncSel); return; } try { themeSel.value = localStorage.getItem('tally-theme') || 'auto'; } catch {} };
+  document.addEventListener('tally-theme', syncSel);
   const cur = h('select', { onchange: async (e) => { if (await attempt(() => api.put('/settings', { currency: e.target.value }), 'Currency updated.')) await changed(); } },
     options(CURRENCIES.includes(state.settings.currency) ? CURRENCIES.map((c) => [c, c]) : [[state.settings.currency, state.settings.currency], ...CURRENCIES.map((c) => [c, c])], state.settings.currency));
 

@@ -212,6 +212,6 @@ export async function openTxnEditor({ id = null, account_id = null, date = null,
       { label: 'Save', primary: true, submit: true, onClick: () => save(false) },
     ],
   });
-  if (!t) payeeIn.focus();
+  if (!t) dateIn.focus();
   return dlg;
 }
