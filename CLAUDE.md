@@ -17,6 +17,9 @@ Tally is a local, private personal-finance app (a Quicken replacement). It is a 
 - **Financial data never goes in the repo.** `.gitignore` blocks `*.db`, backups and CSV exports. Keep it that way.
 - **Any user-facing change must also update `HOW-TO-USE.html`,** the beginner guide. Mom reads it, and it opens from the **Help** link at the bottom of the sidebar or by double-clicking. Write for someone who doesn't know what a menu or a terminal is: numbered steps, exact button names, what she'll see. It's HTML on purpose: Markdown was hard for her to read.
 - **Keep `Tally.bat` in CRLF** (`.gitattributes` enforces it). Watch for shells rewriting `>nul` as `>/dev/null`.
+  - In a normal Windows folder it runs `"%~dp0server.js"` by its full path with Windows' Node; it doesn't `cd`, since cmd can't `cd` into a UNC path.
+  - In a `\\wsl.localhost\<distro>\...` or `\\wsl$\...` folder it runs `wsl.exe -d <distro> --cd <linux path> -- bash Tally.command`, so Brianna's WSL clone runs on Ubuntu's Node and data. Don't quote the distro name: wsl.exe keeps the quotes on `-d`.
+  - `Tally.command` is the launcher for Mac and Linux/WSL. It loads nvm when `node` isn't on the PATH, because wsl.exe starts a non-interactive shell. In WSL, `openBrowser` uses `explorer.exe`.
 - **Run `npm test` before handing back** (26 tests: importers, ledger, server). Verify UI changes in the browser pane against the throwaway server, and check `read_console_messages` for errors.
 
 ## Architecture

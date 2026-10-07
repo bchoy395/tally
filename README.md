@@ -6,15 +6,16 @@ A private, local personal-finance manager — a Quicken replacement that keeps e
 
 ## Run it
 
-Double-click **`Tally.command`**, or:
-
-```bash
-npm start
-```
+| Where | How |
+|---|---|
+| Windows | Double-click **`Tally.bat`**, or run `.\Tally.bat` in PowerShell. It uses Windows' Node. |
+| Windows, copy inside WSL | The same `Tally.bat` in `\\wsl.localhost\Ubuntu\...` hands off to that Linux distro and runs `Tally.command` there, using Linux's Node and data. |
+| Mac | Double-click **`Tally.command`**. |
+| Linux / WSL | `./Tally.command` or `npm start`. In WSL it opens the Windows browser. |
 
 Tally opens at <http://localhost:4280>. Requires Node.js 22.13+ (it uses Node's built-in SQLite).
 
-Your data lives in `~/Library/Application Support/Tally/tally.db` (macOS). Override with `--data=/some/folder` or `TALLY_DATA`. The port can be changed with `--port=` or `TALLY_PORT`.
+Your data lives in `~/Library/Application Support/Tally/tally.db` (macOS), `%APPDATA%\Tally\tally.db` (Windows) or `~/.local/share/tally/tally.db` (Linux/WSL). Each computer and each WSL distro has its own separate data file. Override with `--data=/some/folder` or `TALLY_DATA`. The port can be changed with `--port=` or `TALLY_PORT`.
 
 ## What it does
 

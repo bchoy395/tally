@@ -211,7 +211,9 @@ if (require.main === module) {
 }
 
 function openBrowser(url) {
-  const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer' : 'xdg-open';
+  // WSL has no xdg-open; explorer.exe opens the URL in the Windows browser, which reaches WSL's localhost.
+  const wsl = process.platform === 'linux' && /microsoft/i.test(os.release());
+  const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer' : wsl ? 'explorer.exe' : 'xdg-open';
   execFile(cmd, [url], () => {});
 }
 
