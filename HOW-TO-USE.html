@@ -24,6 +24,7 @@
   nav a { display: inline-block; margin: 2px 14px 2px 0; color: var(--accent); }
   section { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; margin-bottom: 22px; }
   h2 { font-size: 26px; margin: 0 0 14px; line-height: 1.25; }
+  h3 { font-size: 21px; margin: 28px 0 10px; line-height: 1.3; }
   ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 0; }
   ol.steps > li { counter-increment: s; position: relative; padding: 0 0 16px 52px; min-height: 40px; }
   ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: -2px; width: 36px; height: 36px; border-radius: 50%;
@@ -184,7 +185,12 @@
 
   <section id="update">
     <h2>Getting updates from Brianna</h2>
-    <p>Only do this when Brianna tells you there's an update.</p>
+    <p>Do this when Brianna tells you there's an update, or when Tally tells you itself. Tally checks for updates each time it starts. When there's a new one:</p>
+    <ul>
+      <li>The bottom-left corner of Tally, under <b>Help</b>, shows blue words: <b>Update available</b>.</li>
+      <li>The black window also has a line that starts with <code>Update available</code>.</li>
+    </ul>
+    <p>To install it:</p>
     <ol class="steps">
       <li><b>Close Tally first.</b> Close the browser tab and the black window.</li>
       <li>Open the <b>tally</b> folder on your Desktop.</li>
@@ -198,7 +204,15 @@
           <li>A list of file names ending with something like <code>3 files changed</code>. The update is installed.</li>
         </ul></li>
       <li>Close that window with the <b>X</b> in its top-right corner.</li>
-      <li>Start Tally again, the same way as always.</li>
+      <li>Start Tally again, the same way as always. The blue <b>Update available</b> words are gone.</li>
+    </ol>
+
+    <h3>Which version do I have?</h3>
+    <p>Brianna may ask you this. To find it:</p>
+    <ol class="steps">
+      <li>Look at the bottom-left corner of Tally, under <b>Help</b>. The small gray words say something like <code>Version 1.0.0 · build 10 · 375642e</code>.</li>
+      <li>Read her the <b>build</b> number. A bigger number means a newer version.</li>
+      <li>For more detail, click those gray words. Tally opens <b>Settings</b>, and the <b>Version</b> box says whether you have the newest version. To ask again, click <b>Check for updates</b>.</li>
     </ol>
   </section>
 
@@ -214,6 +228,8 @@
       <dd>Call Brianna.</dd>
       <dt>After typing git pull, it says "git is not recognized".</dt>
       <dd>Call Brianna.</dd>
+      <dt>Settings says "Couldn't reach GitHub to check for a newer version."</dt>
+      <dd>That's fine. Tally works normally. It usually means the internet is off. You can still use Tally. It checks again the next time you start it.</dd>
       <dt>A window pops up asking you to sign in to GitHub.</dt>
       <dd>Close it and call Brianna. Please don't try other passwords.</dd>
       <dt>Red text, or any message you're not sure about.</dt>

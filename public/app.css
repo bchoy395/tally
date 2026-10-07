@@ -101,6 +101,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .acct-link .bal { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .networth { margin: 10px 10px 0; padding-top: 10px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; font-weight: 600; font-size: 13px; }
 .side-foot { margin-top: auto; padding-top: 18px; }
+.side-version { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px 0; font-size: 12px; }
+.side-version a { color: var(--muted); }
+.side-version a.update-link { color: var(--accent); font-weight: 600; }
 
 .main { padding: 24px 32px 64px; min-width: 0; }
 .page-head { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }

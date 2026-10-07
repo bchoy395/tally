@@ -10,6 +10,7 @@ const { open } = require('./lib/db');
 const { Ledger } = require('./lib/ledger');
 const { loadSample } = require('./lib/sample');
 const { HttpError, todayISO } = require('./lib/util');
+const version = require('./lib/version');
 
 const PUBLIC = path.join(__dirname, 'public');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.csv': 'text/csv; charset=utf-8', '.png': 'image/png', '.ico': 'image/x-icon' };
@@ -55,7 +56,9 @@ function buildRoutes(L, ctx) {
   };
   return [
     route('GET', '/api/dashboard', () => { L.autoEnterDue(); return L.dashboard(); }),
-    route('GET', '/api/info', () => ({ data_file: ctx.dbFile, backups_dir: ctx.backups ? ctx.backups.dir : null, backups: ctx.backups ? ctx.backups.list().reverse() : [], version: ctx.version })),
+    route('GET', '/api/info', () => ({ data_file: ctx.dbFile, backups_dir: ctx.backups ? ctx.backups.dir : null, backups: ctx.backups ? ctx.backups.list().reverse() : [] })),
+    route('GET', '/api/version', async () => ({ ...(await version.current()), update: ctx.update || null })),
+    route('POST', '/api/version/check', async () => (ctx.update = await version.checkForUpdates())),
     route('GET', '/api/settings', () => L.getSettings()),
     route('PUT', '/api/settings', (p, b) => L.saveSettings(b)),
 
@@ -152,12 +155,12 @@ function createServer(L, ctx = {}) {
       size += c.length;
       if (size > MAX_BODY) { send(413, { error: 'That file is too large.' }); req.destroy(); } else chunks.push(c);
     });
-    req.on('end', () => {
+    req.on('end', async () => {
       if (res.writableEnded) return;
       try {
         const raw = Buffer.concat(chunks).toString('utf8');
         const body = raw ? JSON.parse(raw) : {};
-        const out = r.handler(params, body, url.searchParams);
+        const out = await r.handler(params, body, url.searchParams);
         if (out && out.__download) {
           res.writeHead(200, { 'Content-Type': out.type, 'Content-Disposition': `attachment; filename="${out.__download}"`, 'Cache-Control': 'no-store' });
           res.end(out.body);
@@ -181,6 +184,10 @@ function serveStatic(pathname, res) {
 
 if (require.main === module) {
   const args = process.argv.slice(2);
+  if (args.includes('--version')) {
+    version.current().then((v) => { console.log(`Tally ${version.label(v)}`); process.exit(0); });
+    return;
+  }
   const port = Number(process.env.TALLY_PORT || (args.find((a) => a.startsWith('--port=')) || '').slice(7) || 4280);
   const dataDir = defaultDataDir(args);
   fs.mkdirSync(dataDir, { recursive: true });
@@ -190,8 +197,8 @@ if (require.main === module) {
   const backups = makeBackups(db, dataDir);
   try { backups.daily(); } catch (e) { console.warn('Backup failed:', e.message); }
   L.autoEnterDue();
-  const version = require('./package.json').version;
-  const server = createServer(L, { dbFile, backups, version });
+  const ctx = { dbFile, backups, update: null };
+  const server = createServer(L, ctx);
   server.on('error', (e) => {
     if (e.code === 'EADDRINUSE') {
       console.log(`Tally is already running at http://localhost:${port}`);
@@ -202,7 +209,12 @@ if (require.main === module) {
   });
   server.listen(port, '127.0.0.1', () => {
     const url = `http://localhost:${port}`;
-    console.log(`Tally is running at ${url}\nData file: ${dbFile}\nPress Ctrl+C to stop.`);
+    version.current().then((v) => {
+      const local = v.changed_files ? ` (+ ${v.changed_files} changed file${v.changed_files === 1 ? '' : 's'} not committed)` : '';
+      console.log(`Tally ${version.label(v)}${local}${v.date ? `, committed ${v.date.slice(0, 10)}` : ''}`);
+      console.log(`Running at ${url}\nData file: ${dbFile}\nPress Ctrl+C to stop.`);
+      version.checkForUpdates().then((u) => { ctx.update = u; console.log(version.describeUpdate(u)); });
+    });
     if (!args.includes('--no-open')) openBrowser(url);
   });
   const shutdown = () => { server.close(); try { db.close(); } catch {} process.exit(0); };

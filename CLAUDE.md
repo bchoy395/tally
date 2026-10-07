@@ -20,7 +20,7 @@ Tally is a local, private personal-finance app (a Quicken replacement). It is a 
   - In a normal Windows folder it runs `"%~dp0server.js"` by its full path with Windows' Node; it doesn't `cd`, since cmd can't `cd` into a UNC path.
   - In a `\\wsl.localhost\<distro>\...` or `\\wsl$\...` folder it runs `wsl.exe -d <distro> --cd <linux path> -- bash Tally.command`, so Brianna's WSL clone runs on Ubuntu's Node and data. Don't quote the distro name: wsl.exe keeps the quotes on `-d`.
   - `Tally.command` is the launcher for Mac and Linux/WSL. It loads nvm when `node` isn't on the PATH, because wsl.exe starts a non-interactive shell. In WSL, `openBrowser` uses `explorer.exe`.
-- **Run `npm test` before handing back** (26 tests: importers, ledger, server). Verify UI changes in the browser pane against the throwaway server, and check `read_console_messages` for errors.
+- **Run `npm test` before handing back** (27 tests: importers, ledger, server). Verify UI changes in the browser pane against the throwaway server, and check `read_console_messages` for errors.
 
 ## Architecture
 
@@ -28,6 +28,7 @@ Tally is a local, private personal-finance app (a Quicken replacement). It is a 
   - It rejects any request whose Host header isn't localhost.
   - Every non-GET request needs the `X-Tally: 1` header (CSRF guard).
   - `/help` serves `HOW-TO-USE.html`.
+  - `lib/version.js` reports the version as `package.json version · build N · hash`, where build = `git rev-list --count HEAD`. Route handlers may be async. `GET /api/version` returns it with the last GitHub check. At startup, and on `POST /api/version/check`, the server runs `git fetch` with prompts disabled (`GIT_TERMINAL_PROMPT=0`, `GCM_INTERACTIVE=never`) so mom never sees a GitHub sign-in window. The sidebar foot and Settings › Version show the result.
   - It takes a daily automatic backup, and a snapshot before imports, restores, erases and account deletes (`VACUUM INTO`, last 30 kept).
 - `lib/db.js` holds the schema and seeds the default categories. `lib/ledger.js` holds all business logic in the `Ledger` class. `lib/importers.js` parses QIF, OFX/QFX and CSV with no database access. `lib/util.js` has the date and money helpers. `lib/sample.js` generates a year of sample data.
 - **Money is always integer cents.** Negative means money leaving the account.

@@ -1,4 +1,4 @@
-import { state, h, clear, icon, money, loadState, onChange, parseHash, ACCOUNT_GROUPS, toast, applyTheme, effectiveTheme, setTheme } from './core.js';
+import { state, h, clear, icon, money, loadState, loadVersion, versionLabel, onChange, parseHash, ACCOUNT_GROUPS, toast, applyTheme, effectiveTheme, setTheme } from './core.js';
 import { openTxnEditor } from './editor.js';
 import { openAccountDialog } from './views/accounts.js';
 import * as dashboard from './views/dashboard.js';
@@ -35,6 +35,22 @@ function themeButton() {
   return btn;
 }
 const sideThemeBtn = themeButton();
+
+// Version at the foot of the sidebar, so two computers can be compared at a glance. Built once and updated in place.
+const versionFoot = h('div', { class: 'side-version' });
+function showVersion() {
+  const v = state.version;
+  if (!v) return;
+  versionFoot.replaceChildren(...[
+    v.update?.behind ? h('a', { class: 'update-link', href: '#/settings' }, 'Update available') : null,
+    h('a', { href: '#/settings', title: 'Version details' }, `Version ${versionLabel(v)}`)].filter(Boolean));
+}
+document.addEventListener('tally-version', showVersion);
+// The server checks GitHub just after it starts, so keep asking briefly until that result is in.
+async function refreshVersion(tries = 0) {
+  try { await loadVersion(); } catch { return; }
+  if (!state.version.update && tries < 10) setTimeout(() => refreshVersion(tries + 1), 3000);
+}
 const app = document.getElementById('app');
 const sidebar = h('nav', { class: 'sidebar', 'aria-label': 'Main' });
 const main = h('main', { class: 'main', id: 'main' });
@@ -77,7 +93,7 @@ function renderSidebar(route) {
     acctSection.append(h('div', { class: 'muted small', style: { padding: '6px 10px' } }, 'No accounts yet.'));
   }
   sidebar.append(acctSection, h('div', { class: 'side-foot nav' }, NAV_2.map(link),
-    h('a', { href: '/help', target: '_blank', rel: 'noopener' }, icon('help'), 'Help')));
+    h('a', { href: '/help', target: '_blank', rel: 'noopener' }, icon('help'), 'Help')), versionFoot);
 }
 
 let rendering = 0;
@@ -119,6 +135,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 applyTheme();
+refreshVersion();
 loadState().then(() => render()).catch((e) => {
   toast(e.message, 'error');
   main.append(h('div', { class: 'callout bad' }, "Can't reach the Tally server. Is it still running?"));

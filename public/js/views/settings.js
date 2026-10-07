@@ -1,9 +1,9 @@
-import { api, state, h, pageHead, changed, attempt, toast, options, field, openDialog, confirmDialog, readFile, setTheme } from '../core.js';
+import { api, state, h, pageHead, changed, attempt, toast, options, field, openDialog, confirmDialog, readFile, setTheme, loadVersion, versionLabel, fmtDateLong } from '../core.js';
 
 const CURRENCIES = ['USD', 'CAD', 'EUR', 'GBP', 'AUD', 'NZD', 'CHF', 'JPY', 'MXN', 'INR', 'SGD', 'HKD', 'SEK', 'NOK', 'DKK', 'ZAR', 'BRL'];
 
 export async function render(el) {
-  const info = await api('/info');
+  const [info] = await Promise.all([api('/info'), loadVersion().catch(() => null)]);
   el.append(pageHead('Settings', null));
 
   let theme = 'auto';
@@ -42,6 +42,8 @@ export async function render(el) {
         h('label', { class: 'btn', for: 'restore-file' }, 'Restore from backup…'), restoreInput,
         h('a', { class: 'btn', href: '/api/export.csv', download: '' }, 'Export all transactions (CSV)')))));
 
+  el.append(h('div', { class: 'card', style: { marginBottom: '16px' } }, h('div', { class: 'card-head' }, h('h2', null, 'Version')), versionCard()));
+
   const danger = h('div', { class: 'card-body stack' });
   if (!state.accounts.length) {
     danger.append(h('div', { class: 'row' }, h('span', { class: 'grow ink-2' }, 'Try Tally with a year of made-up household finances.'),
@@ -68,6 +70,44 @@ export async function render(el) {
     h('div', { class: 'card-body ink-2' },
       h('div', null, h('kbd', null, 'N'), ' New transaction (in the current account)'),
       h('div', null, h('kbd', null, '/'), ' Search'),
-      h('div', null, h('kbd', null, 'Enter'), ' Save the open form · ', h('kbd', null, 'Esc'), ' Close it'),
-      h('p', { class: 'small muted' }, `Tally ${info.version || ''}`))));
+      h('div', null, h('kbd', null, 'Enter'), ' Save the open form · ', h('kbd', null, 'Esc'), ' Close it'))));
+}
+
+// Which build this is, and whether GitHub has a newer one. Redraws when the server's startup check comes in.
+function versionCard() {
+  const body = h('div', { class: 'card-body stack' });
+  const draw = () => {
+    if (!body.isConnected && body.parentNode) { document.removeEventListener('tally-version', draw); return; }
+    const v = state.version;
+    if (!v) { body.replaceChildren(h('p', { class: 'ink-2', style: { margin: 0 } }, "Couldn't read the version.")); return; }
+    const check = h('button', { class: 'btn', onclick: async () => {
+      check.disabled = true;
+      check.textContent = 'Checking…';
+      if (await attempt(() => api.post('/version/check'))) await loadVersion().catch(() => null);
+      else { check.disabled = false; check.textContent = 'Check for updates'; }
+    } }, 'Check for updates');
+    body.replaceChildren(
+      h('div', null, h('div', { style: { fontWeight: 600 } }, `Tally ${versionLabel(v)}`),
+        v.commit
+          ? h('div', { class: 'small ink-2' }, `Latest change: ${v.subject} · ${fmtDateLong(v.date.slice(0, 10))}`)
+          : h('div', { class: 'small ink-2' }, "This copy wasn't downloaded with Git, so it has no build number."),
+        v.changed_files ? h('div', { class: 'small muted' }, `Plus ${v.changed_files} changed file${v.changed_files === 1 ? '' : 's'} not committed yet.`) : null),
+      updateStatus(v.update),
+      h('div', { class: 'row wrap' }, check,
+        v.update?.checked_at ? h('span', { class: 'small muted' }, `Last checked ${new Date(v.update.checked_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`) : null));
+  };
+  document.addEventListener('tally-version', draw);
+  draw();
+  return body;
+}
+
+function updateStatus(u) {
+  const p = (text) => h('p', { class: 'ink-2', style: { margin: 0 } }, text);
+  if (!u) return p('Checking GitHub for a newer version…');
+  if (!u.ok) return h('div', { class: 'callout warn' }, "Couldn't reach GitHub to check for a newer version. The internet may be off. Tally works fine either way.");
+  const unpushed = u.ahead ? h('div', { class: 'small muted' }, `${u.ahead} commit${u.ahead === 1 ? '' : 's'} on this computer ${u.ahead === 1 ? "isn't" : "aren't"} on GitHub yet.`) : null;
+  if (!u.behind) return h('div', null, p('This is the newest version on GitHub.'), unpushed);
+  return h('div', null, h('div', { class: 'callout' }, h('div', null,
+    h('b', null, 'A newer version of Tally is ready'), ` (build ${u.latest_build}, ${u.latest_commit}). To get it, close Tally, run git pull, then start Tally again. `,
+    h('a', { href: '/help#update', target: '_blank', rel: 'noopener' }, 'Show me how'))), unpushed);
 }

@@ -47,3 +47,27 @@ test('API: origin checks, CSRF header, CRUD and errors', async () => {
     server.close();
   }
 });
+
+test('version: label, update messages and /api/version', async () => {
+  const version = require('../lib/version');
+  assert.equal(version.label({ version: '1.0.0', build: 10, commit: 'abc1234' }), '1.0.0 · build 10 · abc1234');
+  assert.equal(version.label({ version: '1.0.0', build: null, commit: null }), '1.0.0', 'no Git: just the package version');
+  assert.match(version.describeUpdate({ ok: true, ahead: 0, behind: 0 }), /Up to date/);
+  assert.match(version.describeUpdate({ ok: true, ahead: 0, behind: 2, latest_build: 12, latest_commit: 'def5678' }), /build 12 \(def5678\).*2 changes newer.*git pull/);
+  assert.match(version.describeUpdate({ ok: true, ahead: 1, behind: 0 }), /1 local commit not pushed/);
+  assert.match(version.describeUpdate({ ok: false }), /Couldn't check/);
+
+  const server = createServer(new Ledger(open(':memory:')), { update: { ok: true, ahead: 0, behind: 0 } });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const { port } = server.address();
+  try {
+    const res = await request(port, { path: '/api/version' });
+    assert.equal(res.status, 200);
+    const v = JSON.parse(res.body);
+    assert.equal(v.version, require('../package.json').version);
+    assert.deepEqual(v.update, { ok: true, ahead: 0, behind: 0 });
+    assert.equal((await request(port, { method: 'POST', path: '/api/version/check' })).status, 403, 'check needs the X-Tally header');
+  } finally {
+    server.close();
+  }
+});

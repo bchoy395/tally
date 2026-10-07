@@ -6,6 +6,7 @@ export const state = {
   catById: new Map(),
   settings: { currency: 'USD' },
   payees: null,
+  version: null,
 };
 
 /* ---------------------------------------------------------------- API */
@@ -44,6 +45,11 @@ export async function changed() {
   await loadState();
   for (const fn of listeners) await fn();
 }
+
+// The running version (lib/version.js) and the last GitHub check. Fires 'tally-version' so the sidebar can update in place.
+export function setVersion(v) { state.version = v; document.dispatchEvent(new Event('tally-version')); }
+export async function loadVersion() { setVersion(await api('/version')); return state.version; }
+export const versionLabel = (v) => [v.version, v.build != null && `build ${v.build}`, v.commit].filter(Boolean).join(' · ');
 
 /* ---------------------------------------------------------------- formatting */
 

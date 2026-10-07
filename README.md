@@ -17,6 +17,16 @@ Tally opens at <http://localhost:4280>. Requires Node.js 22.13+ (it uses Node's 
 
 Your data lives in `~/Library/Application Support/Tally/tally.db` (macOS), `%APPDATA%\Tally\tally.db` (Windows) or `~/.local/share/tally/tally.db` (Linux/WSL). Each computer and each WSL distro has its own separate data file. Override with `--data=/some/folder` or `TALLY_DATA`. The port can be changed with `--port=` or `TALLY_PORT`.
 
+## Versions
+
+Tally shows which code it's running as **`1.0.0 · build 10 · 375642e`**: the `package.json` version, a build number and the commit. The build number counts the commits on the branch, so it goes up by itself with every commit and a bigger number is always newer. The commit hash pins the exact code.
+
+- **Terminal:** printed when Tally starts. `node server.js --version` prints it and exits.
+- **App:** at the foot of the sidebar, and in **Settings › Version** with the latest change and a **Check for updates** button.
+- **Is this the latest?** On start (and from that button), Tally runs `git fetch` and compares with GitHub: **Update available** when GitHub is ahead, plus a note for local commits not pushed yet. It never prompts for a password. If it can't reach GitHub or isn't signed in, it just says it couldn't check.
+
+Bump `version` in `package.json` by hand for big milestones; the build number takes care of everyday changes.
+
 ## What it does
 
 | Area | Features |
