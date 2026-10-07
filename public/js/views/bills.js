@@ -1,6 +1,6 @@
 import {
   api, state, h, money, fmtDate, pageHead, icon, changed, attempt, toast, options, accountOptions, field, openDialog, confirmDialog,
-  categoryInput, resolveCategoryText, ensureCategory, parseAmount, centsToInput, todayISO, editButton, sortableTable,
+  categoryInput, resolveCategoryText, ensureCategory, parseAmount, centsToInput, todayISO, editButton, menuButton, sortableTable,
 } from '../core.js';
 
 const FREQ = [['monthly', 'Monthly'], ['weekly', 'Weekly'], ['biweekly', 'Every 2 weeks'], ['quarterly', 'Quarterly'], ['yearly', 'Yearly'], ['once', 'Once']];
@@ -78,9 +78,13 @@ export async function render(el) {
         h('td', { class: 'hide-sm' }, u.auto_enter ? h('span', { class: 'badge accent' }, 'Auto') : ''),
         h('td', { class: `amt ${u.amount > 0 ? 'pos' : 'neg'}` }, money(u.amount)),
         h('td', { class: 'amt hide-sm muted' }, money(u.running)),
-        h('td', { class: 'r' }, u.is_next ? h('div', { class: 'row', style: { justifyContent: 'flex-end' } },
+        // Only the next date of each schedule has actions; later dates of the same bill are just a preview.
+        h('td', { class: 'r' }, u.is_next ? h('div', { class: 'row', style: { justifyContent: 'flex-end', gap: '6px' } },
           h('button', { class: 'btn sm', onclick: async () => { if (await attempt(() => api.post(`/scheduled/${u.id}/enter`), `Entered ${u.payee}.`)) await changed(); } }, 'Enter'),
-          h('button', { class: 'btn sm ghost', onclick: async () => { if (await attempt(() => api.post(`/scheduled/${u.id}/skip`), 'Skipped this one.')) await changed(); } }, 'Skip')) : null)),
+          menuButton(`More for ${u.payee}: skip or edit`, [
+            ['Skip this one', async () => { if (await attempt(() => api.post(`/scheduled/${u.id}/skip`), 'Skipped this one.')) await changed(); }],
+            ['Edit…', () => openScheduleDialog(list.find((x) => x.id === u.id))],
+          ])) : null)),
     });
     up.append(h('div', { class: 'table-wrap' }, t.table));
   }

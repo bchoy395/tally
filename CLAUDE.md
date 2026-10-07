@@ -45,6 +45,7 @@ Tally is a local, private personal-finance app (a Quicken replacement). It is a 
 
 - **Rows select on click; editing is a separate per-row Edit button.** The register and the Transactions page show a bulk bar (`views/bulk.js`) once rows are selected.
 - **Every table header sorts** through `sortableTable` (ascending, then descending; blanks last; sort remembered per table id). It sorts the full list and then pages, so the top results are always right. Budget and Categories are grouped, so they don't sort.
+- **Rows with several actions show one main button plus a bordered "⋯" menu** (`menuButton` in `core.js`). In Bills & recurring's Next 45 days, that's Enter plus ⋯ holding "Skip this one" and "Edit…". Only each schedule's next date has actions. Don't use hover-only buttons or icon-only actions other than ⋯.
 - **Amount colors:** deposits are green (`pos`). In Bills & recurring and Home's upcoming bills, payments are red (`neg`).
 - **Light/dark:** the sun/moon button next to the brand; Settings › Appearance offers "Match my computer", Light or Dark. Colors are CSS tokens on `:root`, with dark values under both `prefers-color-scheme` and `[data-theme="dark"]`.
 - **Sidebar:** ACCOUNTS and group headings (Banking, Credit cards, …) are bold and dark; account rows are indented under them.

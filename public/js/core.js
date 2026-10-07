@@ -340,6 +340,7 @@ export const ICONS = {
   gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
+  more: '<circle cx="5" cy="12" r="1.9" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.9" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.9" fill="currentColor" stroke="none"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
@@ -390,6 +391,52 @@ export function applyTheme() {
 }
 
 export const plural = (n, one, many = `${one}s`) => `${Number(n).toLocaleString()} ${n === 1 ? one : many}`;
+
+// A "⋯" button that opens a short list of actions: items are [label, onClick].
+// The list goes on <body> so a scrolling table can't clip it. One open at a time; Esc, a click outside or scrolling closes it.
+let openMenu = null;
+export function menuButton(label, items) {
+  const btn = h('button', { type: 'button', class: 'btn sm icon-btn more-btn', title: label, 'aria-label': label, 'aria-haspopup': 'menu', 'aria-expanded': 'false' }, icon('more'));
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const wasMine = openMenu?.btn === btn;
+    openMenu?.close();
+    if (wasMine) return;
+    const list = h('div', { class: 'menu', role: 'menu' },
+      items.map(([text, fn]) => h('button', { type: 'button', role: 'menuitem', onclick: (ev) => { ev.stopPropagation(); close(); fn(); } }, text)));
+    const its = () => [...list.children];
+    const onKey = (ev) => {
+      const i = its().indexOf(document.activeElement);
+      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); close(); btn.focus(); }
+      else if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { ev.preventDefault(); its()[(i + (ev.key === 'ArrowDown' ? 1 : its().length - 1)) % its().length].focus(); }
+      else if (ev.key === 'Tab') close();
+    };
+    const onOutside = (ev) => { if (!list.contains(ev.target) && !btn.contains(ev.target)) close(); };
+    function close() {
+      list.remove();
+      btn.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('keydown', onKey, true);
+      document.removeEventListener('pointerdown', onOutside, true);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+      if (openMenu?.btn === btn) openMenu = null;
+    }
+    document.body.append(list);
+    // Below the button and right-aligned with it; above it when there's no room underneath.
+    const r = btn.getBoundingClientRect();
+    const below = r.bottom + 4 + list.offsetHeight <= window.innerHeight;
+    list.style.top = `${below ? r.bottom + 4 : r.top - 4 - list.offsetHeight}px`;
+    list.style.left = `${Math.max(8, r.right - list.offsetWidth)}px`;
+    btn.setAttribute('aria-expanded', 'true');
+    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('pointerdown', onOutside, true);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    openMenu = { btn, close };
+    its()[0].focus();
+  });
+  return btn;
+}
 
 // The per-row Edit button (rows themselves select, they don't open).
 export function editButton(what, onclick) {

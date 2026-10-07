@@ -136,6 +136,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .btn.sm { height: 26px; padding: 0 8px; font-size: 12px; border-radius: 6px; }
 .btn svg { width: 15px; height: 15px; }
 .icon-btn { width: 32px; padding: 0; }
+.btn.sm.icon-btn { width: 26px; padding: 0; justify-content: center; }
+.menu { position: fixed; z-index: 60; display: flex; flex-direction: column; min-width: 150px; padding: 4px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: var(--shadow); }
+.menu button { border: 0; background: none; color: var(--ink); font: inherit; font-size: 13px; text-align: left; padding: 7px 10px; border-radius: 6px; cursor: pointer; }
+.menu button:hover, .menu button:focus { background: var(--hover); outline: none; }
 
 input[type="text"], input[type="search"], input[type="date"], input[type="number"], input[type="month"], input:not([type]), select, textarea {
   height: 32px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0;
